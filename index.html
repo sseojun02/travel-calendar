@@ -46,6 +46,10 @@ h2{margin:0;font-size:17px;font-weight:700}
 textarea.field{height:auto;min-height:80px;padding:12px 14px;resize:vertical}
 .flabel{font-size:12px;font-weight:700;color:var(--ink2);margin:0 0 6px 4px;display:block}
 .row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.row2>*{min-width:0}
+input[type=date].field,input[type=time].field{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left;line-height:46px}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{opacity:.6}
 .seg{display:grid;gap:4px;padding:5px;border-radius:28px}
 .seg button{border:0;background:transparent;border-radius:23px;font-size:14px;font-weight:500;color:var(--ink2);min-height:42px}
 .seg button.on{background:var(--accent);color:var(--on);font-weight:700}
