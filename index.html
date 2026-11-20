@@ -468,7 +468,6 @@ function connect() {
   firebase.initializeApp(FIREBASE_CONFIG);
   var fs = firebase.firestore();
   try { fs.enablePersistence({synchronizeTabs: true}).catch(function () {}); } catch (e) {}
-  firebase.auth().getRedirectResult().catch(function (e) { authError = authMsg(e); render(); });
   firebase.auth().onAuthStateChanged(function (u) {
     fbUser = u; authReady = true;
     if (unsub) { unsub(); unsub = null; }
@@ -507,12 +506,17 @@ function authMsg(e) {
   if (c === 'auth/operation-not-allowed') return 'Firebase에서 Google 로그인이 아직 꺼져 있어요.';
   return '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
+function inApp() { return /KAKAOTALK|FBAN|FBAV|Instagram|Line\/|NAVER\(inapp|DaumApps|everytimeApp|; wv\)/i.test(navigator.userAgent || ''); }
 function signIn() {
   authError = '';
+  if (inApp()) { authError = '앱 안의 브라우저에서는 구글 로그인이 막혀 있어요. 위 버튼으로 사파리나 크롬에서 열어 주세요.'; render(); return; }
   var p = new firebase.auth.GoogleAuthProvider();
+  p.setCustomParameters({prompt: 'select_account'});
   firebase.auth().signInWithPopup(p).catch(function (e) {
-    if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) { firebase.auth().signInWithRedirect(p); return; }
-    authError = authMsg(e); render();
+    var c = e && e.code;
+    if (c === 'auth/popup-blocked') authError = '로그인 창이 막혔어요. 버튼을 한 번 더 눌러 주세요. 계속 막히면 설정 → Safari → 팝업 차단을 잠깐 꺼 주세요.';
+    else authError = authMsg(e);
+    render();
   });
 }
 
@@ -799,6 +803,7 @@ function screenLogin() {
   return '<div style="padding-top:12vh;display:flex;flex-direction:column;gap:14px;align-items:stretch">' +
     '<div style="width:64px;height:64px;border-radius:20px;background:var(--accent);display:flex;align-items:center;justify-content:center;align-self:center">' + svg(I.cal, 30) + '</div>' +
     '<div style="text-align:center"><h1>여행 캘린더</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.6">일정, 할 일, 예약, 지출을 한곳에.<br>로그인하면 폰과 노트북 어디서든 이어서 볼 수 있어요.</p></div>' +
+    (inApp() ? '<div style="background:#FFF4E5;border:1px solid #F5D7A8;border-radius:18px;padding:14px 16px;font-size:13px;line-height:1.6;color:#6B4A16">카카오톡 같은 앱 안에서 열려 있어요. 이 화면에서는 구글 로그인이 안 돼요.<br>' + (/KAKAOTALK/i.test(navigator.userAgent) ? '<a href="kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href) + '" style="display:inline-block;margin-top:8px;font-weight:700;color:#16181D">사파리 · 크롬으로 열기 →</a>' : '오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>를 눌러 주세요.') + '</div>' : '') +
     '<button class="btn" data-act="signIn" style="height:52px;border-radius:26px;margin-top:10px">Google 계정으로 로그인</button>' +
     (authError ? '<p role="alert" style="margin:0;font-size:13px;color:#A32D2D;text-align:center;line-height:1.5">' + esc(authError) + '</p>' : '') +
     '<button class="link" data-act="useLocal" style="align-self:center">로그인 없이 이 기기에서만 쓰기</button></div>';
