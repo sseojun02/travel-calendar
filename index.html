@@ -1021,12 +1021,12 @@ function aiSheet() {
     if (m.role === 'me') { h += '<div class="bub me">' + esc(m.text) + '</div>'; return; }
     h += '<div class="bub ai">' + esc(m.reply || (m.actions.length ? '이렇게 넣을게요.' : '음, 다시 한 번 말해 주시겠어요?')) + '</div>';
     if (m.actions.length) {
-      var on = m.actions.filter(function (x) { return x.on; }).length;
+      var on = m.actions.filter(function (x) { return x.on; }).length, verb = m.actions.some(function (x) { return x.type === 'stop_edit' || x.type === 'delete'; }) ? '적용' : '넣기';
       h += '<div class="ai-card">' + m.actions.map(function (x, i) {
         var d = aiDesc(x);
         return '<button type="button" class="ai-item' + (x.on ? '' : ' off') + '" data-act="aiToggle" data-m="' + mi + '" data-i="' + i + '" aria-pressed="' + x.on + '"' + (m.applied ? ' disabled' : '') + '><span class="check' + (x.on ? ' on' : '') + '" aria-hidden="true">' + (x.on ? svg(I.check, 14, 3) : '') + '</span><span class="k">' + d.k + '</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(d.main) + '</span>' + (d.sub ? '<span style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(d.sub) + '</span>' : '') + '</span></button>';
       }).join('') +
-      (m.applied ? '<div style="font-size:13px;font-weight:700;color:var(--deep);padding:2px 4px">' + svg(I.check, 14, 3) + ' ' + m.applied + '개를 넣었어요</div>' : '<button type="button" class="btn" data-act="aiApply" data-m="' + mi + '" style="align-self:flex-start;height:40px"' + (on ? '' : ' disabled') + '>' + on + '개 넣기</button>') + '</div>';
+      (m.applied ? '<div style="font-size:13px;font-weight:700;color:var(--deep);padding:2px 4px">' + svg(I.check, 14, 3) + ' ' + m.applied + (verb === '적용' ? '개를 적용했어요' : '개를 넣었어요') + '</div>' : '<button type="button" class="btn" data-act="aiApply" data-m="' + mi + '" style="align-self:flex-start;height:40px"' + (on ? '' : ' disabled') + '>' + on + '개 ' + verb + '</button>') + '</div>';
     }
   });
   if (a.busy) h += '<div class="bub ai"><span class="dots" aria-label="생각하는 중"><i></i><i></i><i></i></span></div>';
@@ -1109,6 +1109,8 @@ function render() {
   var keepScroll = main && lastTab === ui.tab ? main.scrollTop : 0;
   var active = document.activeElement, activeBind = active && active.getAttribute && active.getAttribute('data-bind'), selStart = null;
   try { if (activeBind && active.selectionStart != null) selStart = active.selectionStart; } catch (e) {}
+  var aiTa = document.getElementById('ai-text'), aiFocus = false, aiBox = document.getElementById('ai-msgs'), aiScroll = aiBox ? aiBox.scrollTop : null, aiAtEnd = aiBox ? aiBox.scrollTop + aiBox.clientHeight >= aiBox.scrollHeight - 8 : true;
+  if (aiTa) { ui.ai.text = aiTa.value; aiFocus = document.activeElement === aiTa; }
   applyTheme();
   var body;
   if (!authReady) body = '<div class="empty">불러오는 중…</div>';
@@ -1129,6 +1131,8 @@ function render() {
   app.innerHTML = '<main class="main">' + body + '</main>' + nav + sheetHtml() + (ui.toast ? '<div class="toast" role="status">' + esc(ui.toast) + '</div>' : '');
   var m2 = app.querySelector('.main'); if (m2) m2.scrollTop = keepScroll;
   lastTab = ui.tab;
+  var aiBox2 = document.getElementById('ai-msgs'); if (aiBox2 && aiScroll != null) aiBox2.scrollTop = aiAtEnd ? aiBox2.scrollHeight : aiScroll;
+  var aiTa2 = document.getElementById('ai-text'); if (aiTa2) { aiGrow(aiTa2); if (aiFocus) { try { aiTa2.focus({preventScroll: true}); var L = aiTa2.value.length; aiTa2.setSelectionRange(L, L); } catch (e) {} } }
   if (activeBind && !ui.sheet) {
     var el = app.querySelector('[data-bind="' + activeBind + '"]');
     if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} }
@@ -1165,7 +1169,7 @@ var A = {
   sheet: function (el) { if (el.dataset.type === 'ai') { ui.ai.err = ''; } ui.sheet = {type: el.dataset.type, id: el.dataset.id || null, date: el.dataset.date || null}; render(); if (el.dataset.type === 'ai') { aiAfterRender(true); return; } var f = document.querySelector('.sheet input:not([type=hidden]), .sheet select'); if (f && !el.dataset.id) try { f.focus(); } catch (e) {} },
   closeSheet: function () { ui.sheet = null; render(); },
   aiToggle: function (el) { var m = ui.ai.msgs[+el.dataset.m], x = m && m.actions[+el.dataset.i]; if (x && !m.applied) { var box = document.getElementById('ai-msgs'), st = box ? box.scrollTop : 0; x.on = !x.on; render(); box = document.getElementById('ai-msgs'); if (box) box.scrollTop = st; } },
-  aiApply: function (el) { var m = ui.ai.msgs[+el.dataset.m]; if (!m || m.applied) return; var n = aiApply(m); m.applied = n || -1; if (n <= 0) m.applied = 0; commit(n ? n + '개를 넣었어요' : '넣을 항목이 없었어요'); if (ui.sheet) aiAfterRender(false); },
+  aiApply: function (el) { var m = ui.ai.msgs[+el.dataset.m]; if (!m || m.applied) return; var n = aiApply(m); m.applied = n || -1; if (n <= 0) m.applied = 0; commit(n ? n + '개를 반영했어요' : '반영할 항목이 없었어요'); },
   overlay: function (el, e) { if (e.target === el) { ui.sheet = null; render(); } },
   pickChip: function (el) { var g = el.parentNode; Array.prototype.forEach.call(g.querySelectorAll('.chip'), function (c) { c.classList.toggle('on', c === el); }); var hid = g.parentNode.querySelector('input[type=hidden]'); if (hid) hid.value = el.dataset.v; },
   sheetDelete: function () {
