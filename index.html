@@ -39,6 +39,12 @@ h2{margin:0;font-size:17px;font-weight:700}
 .chip.on{background:var(--accent);border-color:var(--accent);color:var(--on);font-weight:700}
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;background:var(--bg);padding:4px 9px;border-radius:999px;white-space:nowrap}
 .btn{height:46px;padding:0 18px;border:0;border-radius:23px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;white-space:nowrap}
+.ai-entry{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;border:1px solid var(--line);background:#fff;text-align:left;font-size:14px;color:var(--ink2)}
+.ai-entry .spk{width:36px;height:36px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--deep);flex-shrink:0}
+.ai-item{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:16px;border:1px solid var(--line);background:#fff;text-align:left}
+.ai-item.off{opacity:.45}
+.ai-item .k{font-size:11px;font-weight:700;color:var(--deep);background:var(--soft);border-radius:8px;padding:3px 7px;flex-shrink:0}
+.ai-reply{background:var(--bg);border-radius:16px;padding:12px 14px;font-size:14px;line-height:1.55;color:var(--ink2)}
 .btn.soft{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
 .btn.accent{background:var(--accent);color:var(--on)}
 .btn.danger{background:#FCEBEB;color:#A32D2D}
@@ -96,6 +102,11 @@ var FIREBASE_CONFIG = {
   messagingSenderId: "861460318558",
   appId: "1:861460318558:web:90ec10850b08bea14267cf"
 };
+
+/* ---------- AI (Firebase AI Logic · Gemini Developer API 무료 등급) ---------- */
+var RECAPTCHA_SITE_KEY = '6LdNxykuAAAAAE2y9fav9-X_sO-5CRARD8unsuW9'; // 앱 체크용 reCAPTCHA(Fraud Defense) 사이트 키(공개 값)
+var AI_SDK = 'https://www.gstatic.com/firebasejs/13.4.0/';
+var AI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
 
 /* ---------- constants ---------- */
 var THEMES = {"레몬":"#EFE3B0","크림":"#EFDCC4","피치":"#F1D0BC","코랄":"#EDC3BE","라임":"#DCE3BC","그린":"#C8DEC9","민트":"#C2E0D8","스카이":"#C3DFEA","블루":"#C6DCF3","라벤더":"#D6D0EC","핑크":"#E8CDE3","로즈":"#EFC9D3","토프":"#DCD3CA","샌드":"#E3D8BF","그레이":"#DADDE1","슬레이트":"#C9D0D8"};
@@ -357,7 +368,8 @@ var I = {
   check:'<path d="M5 12l5 5 9-10"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
   train:'<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l1.5-4M15 21l-1.5-4"/>',
   plane:'<path d="M2 16l20-6-20-6 4 6-4 6z"/>', link:'<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
-  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>'
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>'
 };
 
 /* ---------- helpers ---------- */
@@ -397,7 +409,7 @@ function won(n) { return '₩' + (Math.round(n / 100) * 100).toLocaleString('ko-
 
 /* ---------- state ---------- */
 var S = null;
-var ui = {tab: 'home', day: null, calY: null, calM: null, calSel: null, todoFilter: 'all', draft: {text: '', date: ''}, spend: {amt: '', memo: '', cat: '식사', cur: null}, sheet: null, toast: ''};
+var ui = {tab: 'home', day: null, calY: null, calM: null, calSel: null, todoFilter: 'all', draft: {text: '', date: ''}, spend: {amt: '', memo: '', cat: '식사', cur: null}, sheet: null, toast: '', ai: {text: '', busy: false, err: '', result: null}};
 var fbUser = null, authReady = false, localMode = false, unsub = null;
 var db = null, ref = null, loaded = false, syncStatus = 'connecting', saving = false, again = false, lastSaved = '', saveTimer = null;
 
@@ -558,6 +570,7 @@ function screenHome() {
     '<span class="num" style="background:var(--ink);color:#fff;font-weight:700;font-size:14px;padding:7px 13px;border-radius:999px;white-space:nowrap">' + dday() + '</span></div>' +
     '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">' +
     tile('일정', S.stops.length + '곳') + tile('남은 할 일', left + '개') + tile('예약', S.bookings.length + '건') + '</div></section>';
+  h += aiEntry();
   var stay = t.stay || {};
   if (stay.name || stay.address) {
     h += '<a class="card" href="' + mapUrl(stay.address || stay.name) + '" target="_blank" rel="noopener" aria-label="숙소 위치 구글 지도에서 열기" style="padding:10px 12px 10px 10px;display:flex;align-items:center;gap:12px;text-decoration:none">' +
@@ -856,6 +869,140 @@ function onCityPicked(form) {
 }
 function cityFromForm(f) { return f.citySel === '__other' ? (f.cityOther || '') : (f.citySel || ''); }
 
+/* ---------- AI ---------- */
+function aiEntry() {
+  return '<button class="ai-entry" data-act="sheet" data-type="ai"><span class="spk">' + svg(I.spark, 20) + '</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700;color:var(--ink)">AI에게 말하기</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">“숙소는 ○○호텔로 넣어줘”처럼 말하면 알아서 넣어줘요</span></span>' + svg(I.next, 16) + '</button>';
+}
+var aiP = null;
+function aiLoad() {
+  if (aiP) return aiP;
+  aiP = Promise.all([import(AI_SDK + 'firebase-app.js'), import(AI_SDK + 'firebase-ai.js'), RECAPTCHA_SITE_KEY ? import(AI_SDK + 'firebase-app-check.js') : null]).then(function (m) {
+    var appM = m[0], aiM = m[1], acM = m[2];
+    var app = appM.getApps().filter(function (a) { return a.name === 'ai'; })[0] || appM.initializeApp(FIREBASE_CONFIG, 'ai');
+    if (acM) acM.initializeAppCheck(app, {provider: new acM.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: true});
+    return {m: aiM, ai: aiM.getAI(app, {backend: new aiM.GoogleAIBackend()})};
+  });
+  aiP.catch(function () { aiP = null; });
+  return aiP;
+}
+function aiPrompt(text) {
+  var t = S.trip, days = tripDays();
+  var ctx = {
+    오늘: nowIn(t.homeTz || 'Asia/Seoul').date,
+    여행: {제목: t.title, 나라: t.country, 도시: t.city, 시작: t.start, 끝: t.end, 현지통화: t.currency},
+    날짜목록: days.map(function (d) { return d.label + ' = ' + d.date + ' (' + DOW[parseD(d.date).getDay()] + ')'; }),
+    현재숙소: t.stay || {},
+    기존일정: S.stops.slice(0, 60).map(function (s) { return s.date + ' ' + (s.start || '') + ' ' + s.title; }),
+    기존예약: S.bookings.slice(0, 30).map(function (b) { return b.date + ' ' + b.name; })
+  };
+  return [
+    '너는 해외여행 일정 앱의 입력 도우미야. 사용자의 한국어 요청을 앱에 넣을 항목(JSON)으로 바꿔.',
+    '앱 상태: ' + JSON.stringify(ctx),
+    '반드시 아래 형식의 JSON 하나만 출력해:',
+    '{"reply":"한국어 한두 문장(무엇을 넣을지 요약, 친근한 존댓말)","actions":[...]}',
+    'actions 항목 종류:',
+    '- {"type":"stay","name":"숙소 이름","address":"구글 지도에서 찾을 주소 또는 \'숙소이름, 도시\'","checkin":"HH:MM 또는 빈 문자열"}',
+    '- {"type":"stop","date":"YYYY-MM-DD","start":"HH:MM","end":"HH:MM","title":"장소·할 것(한국어)","place":"짧은 위치 메모","q":"구글 지도 검색어(현지/영문 이름, 도시 포함)","cat":"sight|food|shop|stay|etc","booked":"예약 정보","note":"메모"}',
+    '- {"type":"todo","text":"할 일","date":"YYYY-MM-DD 또는 빈 문자열"}',
+    '- {"type":"booking","name":"이름","date":"YYYY-MM-DD","time":"HH:MM","kind":"입장권|항공권|투어|기차|기타"}',
+    '- {"type":"spend","amt":숫자,"cur":"통화코드(기본 ' + t.currency + ')","cat":"' + SPEND_CATS.join('|') + '","memo":"메모"}',
+    '규칙: 사용자가 말한 것만 넣어. 모르는 값은 빈 문자열. 주소를 지어내지 말고 모르면 \'숙소이름, 도시\'로 써.',
+    '"둘째 날", "Day 3", "11일" 같은 표현은 날짜목록으로 정확한 날짜로 바꿔. 시간은 24시간 HH:MM. "오전 10시"=10:00, "저녁 7시"=19:00.',
+    '요청이 앱에 넣을 내용이 아니거나 너무 모호하면 actions는 []로 두고 reply에 무엇이 더 필요한지 짧게 물어봐.',
+    '사용자 요청: ' + text
+  ].join('\n');
+}
+function aiCall(text) {
+  return aiLoad().then(function (x) {
+    var prompt = aiPrompt(text);
+    function attempt(i) {
+      var model = x.m.getGenerativeModel(x.ai, {model: AI_MODELS[i], generationConfig: {responseMimeType: 'application/json', temperature: 0.2}});
+      return model.generateContent(prompt).then(function (r) { return r.response.text(); }, function (e) {
+        var msg = String(e && (e.message || e));
+        if (i + 1 < AI_MODELS.length && /not found|404|not supported|is not available|unsupported/i.test(msg)) return attempt(i + 1);
+        throw e;
+      });
+    }
+    return attempt(0);
+  }).then(function (raw) {
+    var txt = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+    var a = txt.indexOf('{'), b = txt.lastIndexOf('}');
+    var o = JSON.parse(a >= 0 ? txt.slice(a, b + 1) : txt);
+    var acts = Array.isArray(o.actions) ? o.actions.filter(function (x) { return x && /^(stay|stop|todo|booking|spend)$/.test(x.type); }).slice(0, 20) : [];
+    acts.forEach(function (x) { x.on = true; });
+    return {reply: String(o.reply || ''), actions: acts};
+  });
+}
+function aiErrMsg(e) {
+  var m = String(e && (e.code || '') + ' ' + (e.message || e));
+  if (/app-check|appcheck|App Check|attestation/i.test(m)) return 'AI 보안 인증(앱 체크)이 아직 연결되지 않았어요.';
+  if (/429|quota|RESOURCE_EXHAUSTED|rate/i.test(m)) return '무료 사용량을 잠깐 다 썼어요. 1분쯤 뒤에 다시 해 주세요.';
+  if (/JSON|Unexpected token/i.test(m)) return 'AI 답을 읽지 못했어요. 한 번만 다시 보내 주세요.';
+  if (/Failed to fetch|NetworkError|network|import/i.test(m)) return '인터넷 연결을 확인해 주세요.';
+  return 'AI가 답하지 못했어요. 잠시 후 다시 해 주세요. (' + m.slice(0, 80) + ')';
+}
+var okD = function (v) { return /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : ''; };
+var okT = function (v) { v = String(v || ''); var m = v.match(/^(\d{1,2}):(\d{2})/); return m && +m[1] < 24 ? pad(+m[1]) + ':' + m[2] : ''; };
+var str = function (v) { return String(v == null ? '' : v).trim().slice(0, 200); };
+function aiDesc(x) {
+  var kinds = {stay: '숙소', stop: '일정', todo: '할 일', booking: '예약', spend: '지출'};
+  var main = '', sub = '';
+  if (x.type === 'stay') { main = x.name || x.address; sub = [x.address && x.address !== x.name ? x.address : '', okT(x.checkin) ? '체크인 ' + okT(x.checkin) : ''].filter(Boolean).join(' · '); }
+  else if (x.type === 'stop') { main = x.title; sub = [okD(x.date) ? (dayLabel(x.date) ? dayLabel(x.date) + ' · ' : '') + mdDow(x.date) : '', [okT(x.start), okT(x.end)].filter(Boolean).join('–'), x.place].filter(Boolean).join(' · '); }
+  else if (x.type === 'todo') { main = x.text; sub = okD(x.date) ? mdDow(x.date) : '날짜 없음'; }
+  else if (x.type === 'booking') { main = x.name; sub = [okD(x.date) ? mdDow(x.date) : '', okT(x.time), x.kind].filter(Boolean).join(' · '); }
+  else if (x.type === 'spend') { main = x.memo || x.cat; sub = (Number(x.amt) || 0).toLocaleString() + ' ' + (x.cur || S.trip.currency) + ' · ' + (x.cat || '기타'); }
+  return {k: kinds[x.type], main: str(main) || '(이름 없음)', sub: str(sub)};
+}
+function aiApply() {
+  var r = ui.ai.result; if (!r) return 0;
+  var n = 0, lastDay = null;
+  r.actions.forEach(function (x) {
+    if (!x.on) return;
+    if (x.type === 'stay') { S.trip.stay = {name: str(x.name), address: str(x.address) || str(x.name), checkin: okT(x.checkin)}; n++; }
+    else if (x.type === 'stop' && str(x.title)) {
+      var d = okD(x.date) || ui.day || S.trip.start, cat = /^(sight|food|shop|stay|etc)$/.test(x.cat) ? x.cat : 'sight';
+      S.stops.push({id: nid(), date: d, start: okT(x.start), end: okT(x.end), title: str(x.title), place: str(x.place), q: str(x.q), cat: cat, booked: str(x.booked), move: '', note: str(x.note)});
+      lastDay = d; n++;
+    }
+    else if (x.type === 'todo' && str(x.text)) { S.todos.push({id: nid(), text: str(x.text), date: okD(x.date), done: false}); n++; }
+    else if (x.type === 'booking' && str(x.name)) { S.bookings.push({id: nid(), name: str(x.name), date: okD(x.date) || S.trip.start, time: okT(x.time), kind: str(x.kind) || '기타', url: ''}); n++; }
+    else if (x.type === 'spend' && Number(x.amt) > 0) {
+      var cur = /^[A-Z]{3}$/.test(x.cur || '') && CURRENCIES[x.cur] ? x.cur : S.trip.currency;
+      S.spends.unshift({id: nid(), amt: Number(x.amt), cur: cur, cat: SPEND_CATS.indexOf(x.cat) >= 0 ? x.cat : '기타', memo: str(x.memo), date: nowIn(S.trip.tz).date}); n++;
+    }
+  });
+  if (lastDay) ui.day = lastDay;
+  return n;
+}
+function aiSheet() {
+  var a = ui.ai, h = '<h3 style="display:flex;align-items:center;gap:8px"><span style="color:var(--deep)">' + svg(I.spark, 20) + '</span>AI에게 말하기</h3>';
+  if (!a.result) {
+    h += '<div><label class="flabel" for="ai-text">무엇을 넣을까요?</label><textarea id="ai-text" class="field" rows="3" data-bind="ai.text" placeholder="숙소는 르마레 호텔로 넣어줘, 체크인 3시" ' + (a.busy ? 'disabled' : '') + '>' + esc(a.text) + '</textarea></div>';
+    if (!a.text && !a.busy) h += '<div class="chips">' + ['숙소는 ○○호텔로 넣어줘', '둘째 날 오전 10시 루브르 추가', '할 일에 유심 사기 넣어줘', '점심 25유로 썼어'].map(function (q) { return '<button type="button" class="chip" data-act="aiEx" data-q="' + esc(q) + '">' + esc(q) + '</button>'; }).join('') + '</div>';
+    h += '<p id="sheet-err" role="alert" style="margin:0;font-size:13px;color:#A32D2D">' + esc(a.err) + '</p>';
+    h += '<div style="display:flex;gap:8px"><button type="button" class="btn soft" data-act="closeSheet" style="flex:1">닫기</button><button type="submit" class="btn" style="flex:1"' + (a.busy ? ' disabled' : '') + '>' + (a.busy ? '생각하는 중…' : '보내기') + '</button></div>';
+  } else {
+    var on = a.result.actions.filter(function (x) { return x.on; }).length;
+    h += '<div class="ai-reply">' + esc(a.result.reply || '이렇게 넣을게요.') + '</div>';
+    if (a.result.actions.length) {
+      h += '<div style="display:flex;flex-direction:column;gap:8px">' + a.result.actions.map(function (x, i) {
+        var d = aiDesc(x);
+        return '<button type="button" class="ai-item' + (x.on ? '' : ' off') + '" data-act="aiToggle" data-i="' + i + '" aria-pressed="' + x.on + '"><span class="check' + (x.on ? ' on' : '') + '" aria-hidden="true">' + (x.on ? svg(I.check, 14, 3) : '') + '</span><span class="k">' + d.k + '</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(d.main) + '</span>' + (d.sub ? '<span style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(d.sub) + '</span>' : '') + '</span></button>';
+      }).join('') + '</div>';
+    }
+    h += '<div style="display:flex;gap:8px"><button type="button" class="btn soft" data-act="aiReset" style="flex:1">다시 말하기</button>' + (a.result.actions.length ? '<button type="submit" class="btn" style="flex:1"' + (on ? '' : ' disabled') + '>' + on + '개 넣기</button>' : '') + '</div>';
+  }
+  return h;
+}
+function aiSend() {
+  var a = ui.ai, ta = document.getElementById('ai-text');
+  if (ta) a.text = ta.value;
+  if (!a.text.trim()) { if (ta) ta.focus(); return; }
+  a.busy = true; a.err = ''; render();
+  aiCall(a.text.trim()).then(function (r) { a.busy = false; a.result = r; render(); }, function (e) { try { console.warn('[AI]', e); } catch (x) {} a.busy = false; a.err = aiErrMsg(e); render(); });
+}
+
 /* ---------- sheets ---------- */
 function sheetHtml() {
   var sh = ui.sheet; if (!sh) return '';
@@ -893,6 +1040,8 @@ function sheetHtml() {
       '<div><label class="flabel" for="y-in">체크인</label><input id="y-in" name="checkin" type="time" class="field num" value="' + esc(st.checkin) + '"></div>' + sheetButtons(false);
   } else if (sh.type === 'trip') {
     body = '<h3>여행 정보</h3>' + tripFields(S.trip) + sheetButtons(false);
+  } else if (sh.type === 'ai') {
+    body = aiSheet();
   } else if (sh.type === 'reset') {
     body = '<h3>새 여행을 시작할까요?</h3><p style="margin:0;font-size:14px;color:var(--ink2);line-height:1.6">지금 여행의 일정, 할 일, 예약, 지출이 모두 지워져요. 필요하면 먼저 설정에서 ‘백업 복사’를 눌러 두세요.</p>' +
       '<div class="row2"><button type="button" class="btn soft" data-act="closeSheet">취소</button><button type="button" class="btn danger" data-act="doReset">모두 지우기</button></div>';
@@ -964,8 +1113,11 @@ var A = {
   delSpend: function (el) { S.spends = S.spends.filter(function (x) { return x.id !== el.dataset.id; }); commit('지출을 지웠어요'); },
   theme: function (el) { S.settings.theme = el.dataset.k; commit(); },
   toggleSet: function (el) { S.settings[el.dataset.k] = !S.settings[el.dataset.k]; commit(); },
-  sheet: function (el) { ui.sheet = {type: el.dataset.type, id: el.dataset.id || null, date: el.dataset.date || null}; render(); var f = document.querySelector('.sheet input:not([type=hidden]), .sheet select'); if (f && !el.dataset.id) try { f.focus(); } catch (e) {} },
+  sheet: function (el) { if (el.dataset.type === 'ai') { ui.ai.result = null; ui.ai.err = ''; ui.ai.busy = false; } ui.sheet = {type: el.dataset.type, id: el.dataset.id || null, date: el.dataset.date || null}; render(); var f = document.querySelector('.sheet input:not([type=hidden]), .sheet select'); if (f && !el.dataset.id) try { f.focus(); } catch (e) {} },
   closeSheet: function () { ui.sheet = null; render(); },
+  aiEx: function (el) { var ta = document.getElementById('ai-text'); if (ta) { ta.value = el.dataset.q; ui.ai.text = el.dataset.q; ta.focus(); try { var p = ta.value.indexOf('○○'); if (p >= 0) ta.setSelectionRange(p, p + 2); } catch (e) {} } },
+  aiToggle: function (el) { var x = ui.ai.result && ui.ai.result.actions[+el.dataset.i]; if (x) { x.on = !x.on; render(); } },
+  aiReset: function () { ui.ai.result = null; ui.ai.err = ''; render(); var ta = document.getElementById('ai-text'); if (ta) ta.focus(); },
   overlay: function (el, e) { if (e.target === el) { ui.sheet = null; render(); } },
   pickChip: function (el) { var g = el.parentNode; Array.prototype.forEach.call(g.querySelectorAll('.chip'), function (c) { c.classList.toggle('on', c === el); }); var hid = g.parentNode.querySelector('input[type=hidden]'); if (hid) hid.value = el.dataset.v; },
   sheetDelete: function () {
@@ -1011,6 +1163,10 @@ document.addEventListener('submit', function (e) {
     ui.tab = 'home'; commit('여행을 만들었어요');
   } else if (kind === 'sheet') {
     var sh = ui.sheet, v = readForm(form);
+    if (sh.type === 'ai') {
+      if (!ui.ai.result) { aiSend(); return; }
+      var cnt = aiApply(); ui.ai.result = null; ui.ai.text = ''; ui.sheet = null; commit(cnt ? cnt + '개를 넣었어요' : '넣을 항목이 없었어요'); return;
+    }
     if (sh.type === 'stop') {
       if (!v.title) { showErr('sheet-err', '장소나 할 것을 적어 주세요'); return; }
       if (v.start && v.end && v.end < v.start) { showErr('sheet-err', '끝나는 시간이 시작보다 빨라요'); return; }
@@ -1044,6 +1200,7 @@ document.addEventListener('input', function (e) {
   if (b === 'draft.text') ui.draft.text = v;
   else if (b === 'spend.amt') { ui.spend.amt = v; var p = document.getElementById('sp-preview'); if (p) { p.style.color = ''; p.textContent = spendPreview(parseFloat(String(v).replace(/,/g, '')), ui.spend); } }
   else if (b === 'spend.memo') ui.spend.memo = v;
+  else if (b === 'ai.text') { ui.ai.text = v; }
 });
 document.addEventListener('change', function (e) {
   if (e.target.id === 'f-country') { onCountryPicked(e.target.form); return; }
