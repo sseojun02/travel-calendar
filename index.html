@@ -106,7 +106,7 @@ var FIREBASE_CONFIG = {
 /* ---------- AI (Firebase AI Logic · Gemini Developer API 무료 등급) ---------- */
 var RECAPTCHA_SITE_KEY = '6LdNxykuAAAAAE2y9fav9-X_sO-5CRARD8unsuW9'; // 앱 체크용 reCAPTCHA(Fraud Defense) 사이트 키(공개 값)
 var AI_SDK = 'https://www.gstatic.com/firebasejs/13.4.0/';
-var AI_MODELS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+var AI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
 
 /* ---------- constants ---------- */
 var THEMES = {"레몬":"#EFE3B0","크림":"#EFDCC4","피치":"#F1D0BC","코랄":"#EDC3BE","라임":"#DCE3BC","그린":"#C8DEC9","민트":"#C2E0D8","스카이":"#C3DFEA","블루":"#C6DCF3","라벤더":"#D6D0EC","핑크":"#E8CDE3","로즈":"#EFC9D3","토프":"#DCD3CA","샌드":"#E3D8BF","그레이":"#DADDE1","슬레이트":"#C9D0D8"};
@@ -917,9 +917,11 @@ function aiCall(text) {
     var prompt = aiPrompt(text);
     function attempt(i) {
       var model = x.m.getGenerativeModel(x.ai, {model: AI_MODELS[i], generationConfig: {responseMimeType: 'application/json', temperature: 0.2}});
-      return model.generateContent(prompt).then(function (r) { return r.response.text(); }, function (e) {
+      var timer, timeout = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('timeout')); }, 25000); });
+      return Promise.race([model.generateContent(prompt), timeout]).then(function (r) { clearTimeout(timer); return r.response.text(); }, function (e) {
+        clearTimeout(timer);
         var msg = String(e && (e.message || e));
-        if (i + 1 < AI_MODELS.length && /not found|404|not supported|is not available|unsupported/i.test(msg)) return attempt(i + 1);
+        if (i + 1 < AI_MODELS.length && /not found|404|not supported|is not available|unsupported|timeout|503|overloaded|UNAVAILABLE/i.test(msg)) return attempt(i + 1);
         throw e;
       });
     }
@@ -938,6 +940,7 @@ function aiErrMsg(e) {
   if (/app-check|appcheck|App Check|attestation/i.test(m)) return 'AI 보안 인증(앱 체크)이 아직 연결되지 않았어요.';
   if (/429|quota|RESOURCE_EXHAUSTED|rate/i.test(m)) return '무료 사용량을 잠깐 다 썼어요. 1분쯤 뒤에 다시 해 주세요.';
   if (/JSON|Unexpected token/i.test(m)) return 'AI 답을 읽지 못했어요. 한 번만 다시 보내 주세요.';
+  if (/timeout/i.test(m)) return 'AI 응답이 너무 오래 걸려요. 잠시 후 다시 해 주세요.';
   if (/Failed to fetch|NetworkError|network|import/i.test(m)) return '인터넷 연결을 확인해 주세요.';
   return 'AI가 답하지 못했어요. 잠시 후 다시 해 주세요. (' + m.slice(0, 80) + ')';
 }
