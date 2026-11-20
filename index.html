@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F5F7">
+<title>여행 캘린더</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="여행 캘린더">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{--accent:#C6DCF3;--deep:#5A7DA3;--tint:#E3EDF9;--soft:#EEF4FB;--on:#16181D;
+--ink:#16181D;--ink2:#3A3F4A;--muted:#5F6673;--line:#E9EAEE;--line2:#F0F1F4;--bg:#F4F5F7;
+--shadow:0 1px 2px rgba(22,24,29,.04),0 6px 16px rgba(22,24,29,.06)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg)}
+body{font-family:'Noto Sans KR',Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+.num{font-family:Inter,'Noto Sans KR',sans-serif}
+.shell{max-width:480px;margin:0 auto;height:100vh;height:100dvh;position:relative;overflow:hidden;background:var(--bg)}
+.main{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 22px) 18px calc(env(safe-area-inset-bottom) + 116px);display:flex;flex-direction:column;gap:16px}
+.main>*{flex-shrink:0}
+.card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.eyebrow{font-size:13px;color:var(--muted);font-weight:500}
+h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.5px}
+h2{margin:0;font-size:17px;font-weight:700}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px}
+.link{font-size:13px;font-weight:500;color:var(--muted);background:none;border:0;padding:6px 0;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#C9CDD4}
+.ibtn{width:44px;height:44px;border-radius:22px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(22,24,29,.05),0 3px 8px rgba(22,24,29,.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;color:var(--ink);text-decoration:none}
+.chip{height:34px;padding:0 13px;border-radius:17px;border:1px solid #E6E8EC;background:#fff;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on);font-weight:700}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;background:var(--bg);padding:4px 9px;border-radius:999px;white-space:nowrap}
+.btn{height:46px;padding:0 18px;border:0;border-radius:23px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;white-space:nowrap}
+.btn.soft{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.btn.accent{background:var(--accent);color:var(--on)}
+.btn.danger{background:#FCEBEB;color:#A32D2D}
+.field{width:100%;height:48px;border:1px solid #E6E8EC;border-radius:14px;background:var(--bg);padding:0 14px;font-size:16px}
+textarea.field{height:auto;min-height:80px;padding:12px 14px;resize:vertical}
+.flabel{font-size:12px;font-weight:700;color:var(--ink2);margin:0 0 6px 4px;display:block}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.seg{display:grid;gap:4px;padding:5px;border-radius:28px}
+.seg button{border:0;background:transparent;border-radius:23px;font-size:14px;font-weight:500;color:var(--ink2);min-height:42px}
+.seg button.on{background:var(--accent);color:var(--on);font-weight:700}
+.list{padding:2px 16px}
+.lrow{display:flex;align-items:center;gap:12px;min-height:56px;border-bottom:1px solid var(--line2)}
+.lrow:last-child{border-bottom:0}
+.check{width:26px;height:26px;border-radius:13px;border:2px solid #C9CDD4;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;color:#fff}
+.check.on{background:var(--ink);border-color:var(--ink)}
+.done{color:#8A909B;text-decoration:line-through}
+.x{width:40px;height:40px;border:0;background:transparent;border-radius:20px;color:#9AA0AA;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+.empty{padding:18px;font-size:14px;color:var(--muted);text-align:center}
+.nav{position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));height:64px;border-radius:32px;background:#fff;border:1px solid var(--line);box-shadow:0 2px 4px rgba(22,24,29,.05),0 10px 24px rgba(22,24,29,.10);display:flex;align-items:center;padding:0 6px;z-index:5}
+.nav button{flex:1;height:52px;border-radius:26px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:11px;font-weight:500;padding:0}
+.nav button.on{background:var(--accent);color:var(--on);font-weight:700}
+.fab{position:absolute;right:22px;bottom:calc(94px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:28px;border:0;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 8px rgba(22,24,29,.10),0 10px 22px rgba(22,24,29,.14);z-index:4}
+.overlay{position:absolute;inset:0;background:rgba(22,24,29,.35);display:flex;align-items:flex-end;z-index:10}
+.sheet{background:#fff;width:100%;max-height:90%;overflow-y:auto;border-radius:28px 28px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+.grab{width:40px;height:5px;border-radius:3px;background:#DADDE1;margin:2px auto 0}
+.sheet h3{margin:0;font-size:18px;font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.daytabs{display:flex;gap:4px;overflow-x:auto;padding:5px;border-radius:28px;scrollbar-width:none}
+.daytabs::-webkit-scrollbar{display:none}
+.daytabs button{min-width:76px;flex:1 0 auto;height:48px;border-radius:24px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink);padding:0 10px}
+.daytabs button.on{background:var(--accent);color:var(--on)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:2px}
+.cal-cell{height:50px;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:20px;z-index:20;white-space:nowrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--deep);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="shell" id="app"><div class="main"><div class="empty">불러오는 중…</div></div></div>
+<script>
+(function () {
+'use strict';
+
+/* ---------- Firebase 설정: 콘솔의 firebaseConfig 값을 여기에 붙여넣으세요 ---------- */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDn_t7WsL9TDiI2PBxmYeCLx7BfejGyZZE",
+  authDomain: "travel-calendar-65efc.firebaseapp.com",
+  projectId: "travel-calendar-65efc",
+  storageBucket: "travel-calendar-65efc.firebasestorage.app",
+  messagingSenderId: "861460318558",
+  appId: "1:861460318558:web:90ec10850b08bea14267cf"
+};
+
+/* ---------- constants ---------- */
+var THEMES = {"레몬":"#EFE3B0","크림":"#EFDCC4","피치":"#F1D0BC","코랄":"#EDC3BE","라임":"#DCE3BC","그린":"#C8DEC9","민트":"#C2E0D8","스카이":"#C3DFEA","블루":"#C6DCF3","라벤더":"#D6D0EC","핑크":"#E8CDE3","로즈":"#EFC9D3","토프":"#DCD3CA","샌드":"#E3D8BF","그레이":"#DADDE1","슬레이트":"#C9D0D8"};
+var DEEP = {"레몬":"#8A7835","크림":"#8C6C47","피치":"#985F42","코랄":"#985049","라임":"#69743A","그린":"#4C7552","민트":"#41756A","스카이":"#40718A","블루":"#4D6F96","라벤더":"#6B609A","핑크":"#8A5781","로즈":"#954F64","토프":"#766656","샌드":"#7C6A44","그레이":"#5C6370","슬레이트":"#4A5762"};
+/* ---------- 나라 · 도시 데이터: 이름|통화|기본 시간대|도시(도시:시간대) ---------- */
+var COUNTRY_DATA = [
+'일본|JPY|Asia/Tokyo|도쿄,오사카,교토,후쿠오카,삿포로,나고야,오키나와,고베,요코하마,나라,가고시마,히로시마',
+'대만|TWD|Asia/Taipei|타이베이,가오슝,타이중,타이난,화롄',
+'베트남|VND|Asia/Ho_Chi_Minh|다낭,하노이,호찌민,나트랑,푸꾸옥,호이안,달랏,하롱',
+'태국|THB|Asia/Bangkok|방콕,치앙마이,푸껫,파타야,끄라비,코사무이',
+'필리핀|PHP|Asia/Manila|세부,보라카이,마닐라,보홀,팔라완',
+'중국|CNY|Asia/Shanghai|상하이,베이징,칭다오,광저우,선전,청두,시안,하얼빈,장자제,항저우',
+'홍콩|HKD|Asia/Hong_Kong|홍콩',
+'마카오|MOP|Asia/Macau|마카오',
+'싱가포르|SGD|Asia/Singapore|싱가포르',
+'말레이시아|MYR|Asia/Kuala_Lumpur|쿠알라룸푸르,코타키나발루,페낭,랑카위,조호르바루',
+'인도네시아|IDR|Asia/Jakarta|발리:Asia/Makassar,자카르타,족자카르타,롬복:Asia/Makassar',
+'미국|USD|America/New_York|뉴욕,로스앤젤레스:America/Los_Angeles,샌프란시스코:America/Los_Angeles,라스베이거스:America/Los_Angeles,하와이(호놀룰루):Pacific/Honolulu,시카고:America/Chicago,마이애미,보스턴,워싱턴 D.C.,시애틀:America/Los_Angeles,샌디에이고:America/Los_Angeles,올랜도,뉴올리언스:America/Chicago,덴버:America/Denver,애틀랜타,필라델피아,알래스카(앵커리지):America/Anchorage',
+'괌|USD|Pacific/Guam|괌',
+'사이판|USD|Pacific/Saipan|사이판',
+'캐나다|CAD|America/Toronto|토론토,밴쿠버:America/Vancouver,몬트리올,퀘벡,캘거리:America/Edmonton,밴프:America/Edmonton,나이아가라 폴스',
+'호주|AUD|Australia/Sydney|시드니,멜버른:Australia/Melbourne,브리즈번:Australia/Brisbane,골드코스트:Australia/Brisbane,케언스:Australia/Brisbane,퍼스:Australia/Perth,애들레이드:Australia/Adelaide',
+'뉴질랜드|NZD|Pacific/Auckland|오클랜드,퀸스타운,크라이스트처치,웰링턴',
+'프랑스|EUR|Europe/Paris|파리,니스,마르세유,리옹,보르도,스트라스부르,몽생미셸',
+'영국|GBP|Europe/London|런던,에든버러,맨체스터,리버풀,옥스퍼드,케임브리지',
+'이탈리아|EUR|Europe/Rome|로마,피렌체,베네치아,밀라노,나폴리,아말피,팔레르모,친퀘테레',
+'스페인|EUR|Europe/Madrid|바르셀로나,마드리드,세비야,그라나다,말라가,발렌시아,마요르카,테네리페:Atlantic/Canary',
+'포르투갈|EUR|Europe/Lisbon|리스본,포르투,마데이라:Atlantic/Madeira',
+'독일|EUR|Europe/Berlin|베를린,뮌헨,프랑크푸르트,함부르크,쾰른,하이델베르크',
+'스위스|CHF|Europe/Zurich|취리히,인터라켄,루체른,제네바,체르마트,베른',
+'오스트리아|EUR|Europe/Vienna|빈,잘츠부르크,할슈타트,인스브루크',
+'체코|CZK|Europe/Prague|프라하,체스키크룸로프,브르노',
+'헝가리|HUF|Europe/Budapest|부다페스트',
+'네덜란드|EUR|Europe/Amsterdam|암스테르담,로테르담,헤이그',
+'크로아티아|EUR|Europe/Zagreb|두브로브니크,자그레브,스플리트,플리트비체',
+'그리스|EUR|Europe/Athens|아테네,산토리니,미코노스,크레타',
+'튀르키예|TRY|Europe/Istanbul|이스탄불,카파도키아,안탈리아,이즈미르,파묵칼레',
+'아랍에미리트|AED|Asia/Dubai|두바이,아부다비',
+'몽골|MNT|Asia/Ulaanbaatar|울란바토르',
+'라오스|LAK|Asia/Vientiane|비엔티안,루앙프라방,방비엥',
+'캄보디아|KHR|Asia/Phnom_Penh|씨엠립,프놈펜',
+'인도|INR|Asia/Kolkata|뉴델리,뭄바이,아그라,자이푸르,바라나시,고아',
+'몰디브|MVR|Indian/Maldives|말레',
+'멕시코|MXN|America/Mexico_City|멕시코시티,칸쿤:America/Cancun,과달라하라,오악사카',
+'이집트|EGP|Africa/Cairo|카이로,룩소르,후르가다',
+'한국|KRW|Asia/Seoul|서울,부산,제주,강릉,경주,여수',
+'가나|GHS|Africa/Accra|아크라',
+'가봉|XAF|Africa/Libreville|리브르빌',
+'가이아나|GYD|America/Guyana|조지타운',
+'감비아|GMD|Africa/Banjul|반줄',
+'과테말라|GTQ|America/Guatemala|과테말라시티,안티과',
+'그레나다|XCD|America/Grenada|세인트조지스',
+'조지아|GEL|Asia/Tbilisi|트빌리시,바투미',
+'기니|GNF|Africa/Conakry|코나크리',
+'나미비아|NAD|Africa/Windhoek|빈트후크',
+'나이지리아|NGN|Africa/Lagos|라고스,아부자',
+'남아프리카공화국|ZAR|Africa/Johannesburg|케이프타운,요하네스버그,더반',
+'네팔|NPR|Asia/Kathmandu|카트만두,포카라',
+'노르웨이|NOK|Europe/Oslo|오슬로,베르겐,트롬쇠',
+'니카라과|NIO|America/Managua|마나과',
+'니제르|XOF|Africa/Niamey|니아메',
+'덴마크|DKK|Europe/Copenhagen|코펜하겐',
+'도미니카공화국|DOP|America/Santo_Domingo|산토도밍고,푼타카나',
+'라트비아|EUR|Europe/Riga|리가',
+'러시아|RUB|Europe/Moscow|모스크바,상트페테르부르크,블라디보스토크:Asia/Vladivostok',
+'레바논|LBP|Asia/Beirut|베이루트',
+'루마니아|RON|Europe/Bucharest|부쿠레슈티,브라쇼브',
+'룩셈부르크|EUR|Europe/Luxembourg|룩셈부르크',
+'르완다|RWF|Africa/Kigali|키갈리',
+'리비아|LYD|Africa/Tripoli|트리폴리',
+'리투아니아|EUR|Europe/Vilnius|빌뉴스',
+'리히텐슈타인|CHF|Europe/Vaduz|파두츠',
+'마다가스카르|MGA|Indian/Antananarivo|안타나나리보',
+'마셜제도|USD|Pacific/Majuro|마주로',
+'말라위|MWK|Africa/Blantyre|릴롱궤',
+'말리|XOF|Africa/Bamako|바마코',
+'모나코|EUR|Europe/Monaco|모나코',
+'모로코|MAD|Africa/Casablanca|마라케시,카사블랑카,페스,셰프샤우엔',
+'모리셔스|MUR|Indian/Mauritius|포트루이스',
+'모리타니|MRU|Africa/Nouakchott|누악쇼트',
+'모잠비크|MZN|Africa/Maputo|마푸투',
+'몬테네그로|EUR|Europe/Podgorica|코토르,포드고리차',
+'몰도바|MDL|Europe/Chisinau|키시너우',
+'몰타|EUR|Europe/Malta|발레타',
+'미얀마|MMK|Asia/Yangon|양곤,만달레이,바간',
+'미크로네시아|USD|Pacific/Pohnpei|팔리키르',
+'바누아투|VUV|Pacific/Efate|포트빌라',
+'바레인|BHD|Asia/Bahrain|마나마',
+'바베이도스|BBD|America/Barbados|브리지타운',
+'바하마|BSD|America/Nassau|나소',
+'방글라데시|BDT|Asia/Dhaka|다카',
+'베냉|XOF|Africa/Porto-Novo|코토누',
+'베네수엘라|VES|America/Caracas|카라카스',
+'벨기에|EUR|Europe/Brussels|브뤼셀,브뤼헤,안트베르펜',
+'벨라루스|BYN|Europe/Minsk|민스크',
+'벨리즈|BZD|America/Belize|벨리즈시티',
+'보스니아 헤르체고비나|BAM|Europe/Sarajevo|사라예보,모스타르',
+'보츠와나|BWP|Africa/Gaborone|가보로네',
+'볼리비아|BOB|America/La_Paz|라파스,우유니',
+'부룬디|BIF|Africa/Bujumbura|기테가',
+'부르키나파소|XOF|Africa/Ouagadougou|와가두구',
+'부탄|BTN|Asia/Thimphu|팀푸,파로',
+'북마케도니아|MKD|Europe/Skopje|스코페,오흐리드',
+'불가리아|BGN|Europe/Sofia|소피아',
+'브라질|BRL|America/Sao_Paulo|리우데자네이루,상파울루,이구아수,살바도르,마나우스:America/Manaus',
+'브루나이|BND|Asia/Brunei|반다르스리브가완',
+'사모아|WST|Pacific/Apia|아피아',
+'사우디아라비아|SAR|Asia/Riyadh|리야드,제다',
+'산마리노|EUR|Europe/San_Marino|산마리노',
+'세네갈|XOF|Africa/Dakar|다카르',
+'세르비아|RSD|Europe/Belgrade|베오그라드,노비사드',
+'세이셸|SCR|Indian/Mahe|빅토리아',
+'세인트루시아|XCD|America/St_Lucia|캐스트리스',
+'소말리아|SOS|Africa/Mogadishu|모가디슈',
+'솔로몬제도|SBD|Pacific/Guadalcanal|호니아라',
+'수단|SDG|Africa/Khartoum|하르툼',
+'수리남|SRD|America/Paramaribo|파라마리보',
+'스리랑카|LKR|Asia/Colombo|콜롬보,캔디,갈레',
+'스웨덴|SEK|Europe/Stockholm|스톡홀름,예테보리',
+'슬로바키아|EUR|Europe/Bratislava|브라티슬라바',
+'슬로베니아|EUR|Europe/Ljubljana|류블랴나,블레드',
+'시리아|SYP|Asia/Damascus|다마스쿠스',
+'시에라리온|SLE|Africa/Freetown|프리타운',
+'아르메니아|AMD|Asia/Yerevan|예레반',
+'아르헨티나|ARS|America/Argentina/Buenos_Aires|부에노스아이레스,엘칼라파테,우수아이아,멘도사',
+'아이슬란드|ISK|Atlantic/Reykjavik|레이캬비크',
+'아이티|HTG|America/Port-au-Prince|포르토프랭스',
+'아일랜드|EUR|Europe/Dublin|더블린,골웨이',
+'아제르바이잔|AZN|Asia/Baku|바쿠',
+'아프가니스탄|AFN|Asia/Kabul|카불',
+'안도라|EUR|Europe/Andorra|안도라라베야',
+'알바니아|ALL|Europe/Tirane|티라나',
+'알제리|DZD|Africa/Algiers|알제',
+'앙골라|AOA|Africa/Luanda|루안다',
+'앤티가 바부다|XCD|America/Antigua|세인트존스',
+'에스와티니|SZL|Africa/Mbabane|음바바네',
+'에스토니아|EUR|Europe/Tallinn|탈린',
+'에콰도르|USD|America/Guayaquil|키토,갈라파고스:Pacific/Galapagos',
+'에티오피아|ETB|Africa/Addis_Ababa|아디스아바바',
+'엘살바도르|USD|America/El_Salvador|산살바도르',
+'예멘|YER|Asia/Aden|사나',
+'오만|OMR|Asia/Muscat|무스카트',
+'온두라스|HNL|America/Tegucigalpa|테구시갈파',
+'요르단|JOD|Asia/Amman|암만,페트라,아카바',
+'우간다|UGX|Africa/Kampala|캄팔라',
+'우루과이|UYU|America/Montevideo|몬테비데오',
+'우즈베키스탄|UZS|Asia/Tashkent|타슈켄트,사마르칸트,부하라',
+'우크라이나|UAH|Europe/Kyiv|키이우,리비우',
+'이라크|IQD|Asia/Baghdad|바그다드',
+'이란|IRR|Asia/Tehran|테헤란',
+'이스라엘|ILS|Asia/Jerusalem|예루살렘,텔아비브',
+'자메이카|JMD|America/Jamaica|킹스턴,몬테고베이',
+'잠비아|ZMW|Africa/Lusaka|루사카,리빙스턴',
+'적도기니|XAF|Africa/Malabo|말라보',
+'중앙아프리카공화국|XAF|Africa/Bangui|방기',
+'지부티|DJF|Africa/Djibouti|지부티',
+'짐바브웨|USD|Africa/Harare|하라레,빅토리아폭포',
+'차드|XAF|Africa/Ndjamena|은자메나',
+'칠레|CLP|America/Santiago|산티아고,발파라이소,푼타아레나스,이스터섬:Pacific/Easter',
+'카메룬|XAF|Africa/Douala|야운데',
+'카보베르데|CVE|Atlantic/Cape_Verde|프라이아',
+'카자흐스탄|KZT|Asia/Almaty|알마티,아스타나',
+'카타르|QAR|Asia/Qatar|도하',
+'케냐|KES|Africa/Nairobi|나이로비,몸바사',
+'코모로|KMF|Indian/Comoro|모로니',
+'코스타리카|CRC|America/Costa_Rica|산호세',
+'코트디부아르|XOF|Africa/Abidjan|아비장',
+'콜롬비아|COP|America/Bogota|보고타,메데인,카르타헤나',
+'콩고|XAF|Africa/Brazzaville|브라자빌',
+'콩고민주공화국|CDF|Africa/Kinshasa|킨샤사',
+'쿠바|CUP|America/Havana|아바나,트리니다드',
+'쿠웨이트|KWD|Asia/Kuwait|쿠웨이트시티',
+'키르기스스탄|KGS|Asia/Bishkek|비슈케크',
+'키리바시|AUD|Pacific/Tarawa|타라와',
+'키프로스|EUR|Asia/Nicosia|니코시아,리마솔',
+'타지키스탄|TJS|Asia/Dushanbe|두샨베',
+'탄자니아|TZS|Africa/Dar_es_Salaam|잔지바르,다르에스살람,아루샤',
+'토고|XOF|Africa/Lome|로메',
+'통가|TOP|Pacific/Tongatapu|누쿠알로파',
+'투르크메니스탄|TMT|Asia/Ashgabat|아시가바트',
+'투발루|AUD|Pacific/Funafuti|푸나푸티',
+'튀니지|TND|Africa/Tunis|튀니스',
+'트리니다드 토바고|TTD|America/Port_of_Spain|포트오브스페인',
+'파나마|PAB|America/Panama|파나마시티',
+'파라과이|PYG|America/Asuncion|아순시온',
+'파키스탄|PKR|Asia/Karachi|이슬라마바드,카라치,라호르',
+'파푸아뉴기니|PGK|Pacific/Port_Moresby|포트모르즈비',
+'팔라우|USD|Pacific/Palau|코로르',
+'페루|PEN|America/Lima|리마,쿠스코,마추픽추,아레키파',
+'폴란드|PLN|Europe/Warsaw|바르샤바,크라쿠프,그단스크',
+'프랑스령 폴리네시아|XPF|Pacific/Tahiti|타히티,보라보라',
+'피지|FJD|Pacific/Fiji|난디,수바',
+'핀란드|EUR|Europe/Helsinki|헬싱키,로바니에미',
+'헝가리|HUF|Europe/Budapest|부다페스트',
+'뉴칼레도니아|XPF|Pacific/Noumea|누메아',
+'동티모르|USD|Asia/Dili|딜리',
+'에리트레아|ERN|Africa/Asmara|아스마라',
+'레소토|LSL|Africa/Maseru|마세루',
+'라이베리아|LRD|Africa/Monrovia|몬로비아',
+'기니비사우|XOF|Africa/Bissau|비사우',
+'상투메 프린시페|STN|Africa/Sao_Tome|상투메',
+'남수단|SSP|Africa/Juba|주바',
+'도미니카연방|XCD|America/Dominica|로조',
+'세인트키츠 네비스|XCD|America/St_Kitts|바스테르',
+'세인트빈센트 그레나딘|XCD|America/St_Vincent|킹스타운',
+'나우루|AUD|Pacific/Nauru|야렌',
+'바티칸|EUR|Europe/Vatican|바티칸시티',
+'푸에르토리코|USD|America/Puerto_Rico|산후안',
+'코소보|EUR|Europe/Belgrade|프리슈티나',
+'팔레스타인|ILS|Asia/Hebron|라말라',
+'그린란드|DKK|America/Nuuk|누크',
+'뉴칼레도니아|XPF|Pacific/Noumea|누메아'
+];
+var POPULAR_COUNT = 40;
+var COUNTRIES = (function () {
+  var seen = {}, out = [];
+  COUNTRY_DATA.forEach(function (line, i) {
+    var p = line.split('|'); if (seen[p[0]]) return; seen[p[0]] = 1;
+    out.push({name: p[0], cur: p[1], tz: p[2], popular: i < POPULAR_COUNT,
+      cities: p[3].split(',').map(function (c) { var q = c.split(':'); return {name: q[0], tz: q[1] || p[2]}; })});
+  });
+  return out;
+})();
+function findCountry(name) { for (var i = 0; i < COUNTRIES.length; i++) if (COUNTRIES[i].name === name) return COUNTRIES[i]; return null; }
+
+/* 원화 기준 대략 환율 (예시 · 설정에서 고칠 수 있어요). 1단위 = 몇 원 */
+var RATE_KRW = {EUR:1500,USD:1400,JPY:9.3,GBP:1800,CNY:195,TWD:43,HKD:180,SGD:1050,THB:42,VND:0.055,AUD:910,CHF:1650,KRW:1,CAD:1000,NZD:820,PHP:24,MYR:310,IDR:0.086,INR:16.5,AED:380,TRY:35,CZK:60,HUF:3.8,PLN:350,SEK:135,NOK:130,DKK:200,MXN:75,BRL:250,ARS:1.2,CLP:1.5,PEN:375,COP:0.34,EGP:28,MAD:140,ZAR:77,ILS:380,QAR:385,SAR:375,KZT:2.7,MNT:0.4,LAK:0.064,KHR:0.34,MMK:0.66,NPR:10,LKR:4.6,MOP:175,ISK:10,RUB:15,UZS:0.11,GEL:510,BGN:765,RON:300,RSD:12.8,KES:10.8,TZS:0.53,JOD:1975,OMR:3640,BHD:3720,KWD:4560,FJD:615,XPF:12.6,MVR:91,BND:1050,XOF:2.3,XAF:2.3,XCD:520,TND:470,AMD:3.6,AZN:825,BAM:765,ALL:16,MKD:24,MDL:80,UAH:34,BYN:430,KGS:16,TJS:130,TMT:400,AFN:20,PKR:5,BDT:11.5,BTN:16.5,IRR:0.033,IQD:1.07,LBP:0.016,SYP:0.11,YER:5.6,GHS:95,NGN:0.9,ETB:10,UGX:0.38,RWF:1,MUR:30,SCR:100,MGA:0.3,MWK:0.8,MZN:22,NAD:77,BWP:105,ZMW:52,SZL:77,LSL:77,AOA:1.5,CDF:0.5,DZD:10.5,LYD:255,SDG:2.3,SOS:2.4,DJF:7.9,KMF:3,GMD:20,GNF:0.16,SLE:62,LRD:7,CVE:13.6,STN:61,SSP:0.3,ERN:93,MRU:35,BIF:0.48,GTQ:180,HNL:55,NIO:38,CRC:2.7,PAB:1400,DOP:23,CUP:58,HTG:10.6,JMD:8.9,TTD:205,BBD:700,BSD:1400,BZD:700,GYD:6.7,SRD:38,BOB:200,PYG:0.18,UYU:34,VES:30,WST:500,TOP:590,VUV:11.7,SBD:165,PGK:350};
+var CUR_SYM = {EUR:'€',USD:'$',JPY:'¥',GBP:'£',CNY:'¥',TWD:'NT$',HKD:'HK$',SGD:'S$',THB:'฿',VND:'₫',AUD:'A$',CHF:'CHF ',KRW:'₩',CAD:'C$',NZD:'NZ$',PHP:'₱',MYR:'RM',IDR:'Rp',INR:'₹',AED:'AED ',TRY:'₺',CZK:'Kč ',HUF:'Ft ',PLN:'zł ',SEK:'kr ',NOK:'kr ',DKK:'kr ',MXN:'MX$',BRL:'R$',ILS:'₪',ZAR:'R ',RUB:'₽',MOP:'MOP$',KHR:'៛',LAK:'₭',MNT:'₮',UAH:'₴',GEL:'₾',KZT:'₸'};
+var CUR_NAME = {EUR:'유로',USD:'미국 달러',JPY:'엔',GBP:'파운드',CNY:'위안',TWD:'대만 달러',HKD:'홍콩 달러',SGD:'싱가포르 달러',THB:'바트',VND:'동',AUD:'호주 달러',CHF:'스위스 프랑',KRW:'원',CAD:'캐나다 달러',NZD:'뉴질랜드 달러',PHP:'페소',MYR:'링깃',IDR:'루피아',INR:'루피',AED:'디르함',TRY:'리라',CZK:'코루나',HUF:'포린트',PLN:'즐로티',SEK:'크로나',NOK:'크로네',DKK:'크로네',MXN:'멕시코 페소',BRL:'헤알',MOP:'파타카',KHR:'리엘',LAK:'킵',MNT:'투그릭'};
+var CURRENCIES = {};
+Object.keys(RATE_KRW).forEach(function (k) {
+  var r = RATE_KRW[k];
+  CURRENCIES[k] = {sym: CUR_SYM[k] || (k + ' '), name: CUR_NAME[k] || k, rate: r, dec: r >= 50, unit: r < 0.1 ? 10000 : r < 1 ? 1000 : r < 20 ? 100 : 1};
+});
+CURRENCIES.KRW.unit = 1000;
+
+var TZS = [['Europe/Paris','파리'],['Europe/London','런던'],['Europe/Rome','로마'],['Europe/Madrid','마드리드'],['Europe/Berlin','베를린'],['Europe/Zurich','취리히'],
+  ['America/New_York','뉴욕'],['America/Chicago','시카고'],['America/Los_Angeles','LA'],['Pacific/Honolulu','하와이'],
+  ['Asia/Tokyo','도쿄'],['Asia/Shanghai','상하이'],['Asia/Taipei','타이베이'],['Asia/Hong_Kong','홍콩'],['Asia/Singapore','싱가포르'],
+  ['Asia/Bangkok','방콕'],['Asia/Ho_Chi_Minh','호찌민'],['Australia/Sydney','시드니'],['Asia/Seoul','서울']];
+var CATS = [['sight','관광'],['food','식사'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
+var SPEND_CATS = ['식사','교통','관광','쇼핑','숙소','기타'];
+var DOW = ['일','월','화','수','목','금','토'];
+var LS_KEY = 'travel-calendar-v1';
+
+/* ---------- icons ---------- */
+function svg(d, s, w) { return '<svg width="' + (s || 20) + '" height="' + (s || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
+var I = {
+  home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  tl:'<circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><path d="M6 8v8M11 6h9M11 18h9M11 12h6"/>',
+  todo:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  wallet:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>', back:'<path d="M15 6l-6 6 6 6"/>', next:'<path d="M9 6l6 6-6 6"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  map:'<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  house:'<path d="M3 20V9l9-6 9 6v11"/><path d="M9 20v-6h6v6"/>',
+  check:'<path d="M5 12l5 5 9-10"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  train:'<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l1.5-4M15 21l-1.5-4"/>',
+  plane:'<path d="M2 16l20-6-20-6 4 6-4 6z"/>', link:'<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>'
+};
+
+/* ---------- helpers ---------- */
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function nid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function parseD(s) { var p = String(s).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function fmtD(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function addDays(s, n) { var d = parseD(s); d.setDate(d.getDate() + n); return fmtD(d); }
+function mdDow(s) { var d = parseD(s); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + DOW[d.getDay()]; }
+function toMin(t) { if (!t) return null; var p = t.split(':').map(Number); return p[0] * 60 + p[1]; }
+function fmtDur(m) { if (m == null || m <= 0) return ''; var h = Math.floor(m / 60), r = m % 60; return (h ? h + '시간' : '') + (h && r ? ' ' : '') + (r ? r + '분' : ''); }
+function mapUrl(q) { return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
+function tzName(tz) { for (var i = 0; i < TZS.length; i++) if (TZS[i][0] === tz) return TZS[i][1]; for (var c = 0; c < COUNTRIES.length; c++) { var ci = COUNTRIES[c].cities; for (var j = 0; j < ci.length; j++) if (ci[j].tz === tz) return ci[j].name; } return String(tz).split('/').pop().replace(/_/g, ' '); }
+function allTz() { var seen = {}, out = []; TZS.forEach(function (z) { if (!seen[z[0]]) { seen[z[0]] = 1; out.push(z[0]); } }); COUNTRIES.forEach(function (c) { c.cities.forEach(function (x) { if (!seen[x.tz]) { seen[x.tz] = 1; out.push(x.tz); } }); }); return out; }
+function tzOptions(val) { var list = allTz(); if (val && list.indexOf(val) < 0) list.push(val); return list.map(function (z) { return {z: z, o: tzOffset(z)}; }).sort(function (a, b) { return a.o - b.o || tzName(a.z).localeCompare(tzName(b.z), 'ko'); }).map(function (x) { return '<option value="' + esc(x.z) + '"' + (x.z === val ? ' selected' : '') + '>' + esc(tzName(x.z)) + ' (' + utcLabel(x.z) + ')</option>'; }).join(''); }
+function curOptions(val) { var keys = Object.keys(CURRENCIES).sort(); if (val && keys.indexOf(val) < 0) keys.push(val); return keys.map(function (k) { var c = CURRENCIES[k] || {name: k}; return '<option value="' + k + '"' + (k === val ? ' selected' : '') + '>' + k + ' · ' + esc(c.name) + '</option>'; }).join(''); }
+function countryOptions(val) { var pop = COUNTRIES.filter(function (c) { return c.popular; }), rest = COUNTRIES.filter(function (c) { return !c.popular; }).sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); }); var o = function (c) { return '<option value="' + esc(c.name) + '"' + (c.name === val ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }; return '<option value=""' + (val ? '' : ' selected') + '>나라 선택</option>' + (val && !findCountry(val) ? '<option value="' + esc(val) + '" selected>' + esc(val) + '</option>' : '') + '<optgroup label="자주 가는 나라">' + pop.map(o).join('') + '</optgroup><optgroup label="전체 (가나다순)">' + rest.map(o).join('') + '</optgroup>'; }
+function cityOptions(country, val) { var c = findCountry(country); var list = c ? c.cities : []; var known = list.some(function (x) { return x.name === val; }); return (c ? '' : '<option value="">먼저 나라를 골라요</option>') + list.map(function (x) { return '<option value="' + esc(x.name) + '" data-tz="' + esc(x.tz) + '"' + (x.name === val ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '<option value="__other"' + (val && !known ? ' selected' : '') + '>직접 입력</option>'; }
+function nowIn(tz) {
+  try {
+    var parts = new Intl.DateTimeFormat('en-CA', {timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false, weekday:'short'}).formatToParts(new Date());
+    var g = function (t) { var f = parts.filter(function (p) { return p.type === t; })[0]; return f ? f.value : ''; };
+    var h = g('hour'); if (h === '24') h = '00';
+    return {date: g('year') + '-' + g('month') + '-' + g('day'), hm: h + ':' + g('minute')};
+  } catch (e) { var d = new Date(); return {date: fmtD(d), hm: pad(d.getHours()) + ':' + pad(d.getMinutes())}; }
+}
+function tzOffset(tz) {
+  try { var d = new Date(); var a = new Date(d.toLocaleString('en-US', {timeZone: tz})); var b = new Date(d.toLocaleString('en-US', {timeZone: 'UTC'})); return Math.round((a - b) / 360000) / 10; } catch (e) { return 0; }
+}
+function utcLabel(tz) { var o = tzOffset(tz); return 'UTC' + (o >= 0 ? '+' : '') + o; }
+function ampm(hm) { var h = +hm.slice(0, 2); return h < 12 ? '오전' : '오후'; }
+function rate(cur) { var r = S.rates && S.rates[cur]; return (r && r > 0) ? r : (CURRENCIES[cur] || CURRENCIES.EUR).rate; }
+function money(n, cur) { var c = CURRENCIES[cur] || {sym: cur + ' ', dec: true}; var v = c.dec ? Math.round(n * 100) / 100 : Math.round(n); return c.sym + v.toLocaleString('en-US'); }
+function won(n) { return '₩' + (Math.round(n / 100) * 100).toLocaleString('ko-KR'); }
+
+/* ---------- state ---------- */
+var S = null;
+var ui = {tab: 'home', day: null, calY: null, calM: null, calSel: null, todoFilter: 'all', draft: {text: '', date: ''}, spend: {amt: '', memo: '', cat: '식사', cur: null}, sheet: null, toast: ''};
+var fbUser = null, authReady = false, localMode = false, unsub = null;
+var db = null, ref = null, loaded = false, syncStatus = 'connecting', saving = false, again = false, lastSaved = '', saveTimer = null;
+
+function emptyState(trip) {
+  return {v: 1, trip: trip, stops: [], todos: [], bookings: [], spends: [], rates: {}, settings: {theme: '블루', dual: true, move: true}};
+}
+function sampleState() {
+  var s = emptyState({title: '파리 3박 4일', country: '프랑스', city: '파리', start: '2027-03-11', end: '2027-03-14', currency: 'EUR', tz: 'Europe/Paris', homeTz: 'Asia/Seoul', budget: 1500000,
+    stay: {name: '마레 지구 숙소', address: 'Le Marais, Paris', checkin: '15:00', note: ''}});
+  var st = function (date, a, b, title, place, q, cat, booked, move) { return {id: nid(), date: date, start: a, end: b, title: title, place: place, q: q, cat: cat, booked: booked || '', move: move || '', note: ''}; };
+  s.stops = [
+    st('2027-03-11','09:00','10:30','몽마르트르 · 사크레쾨르','18구','Sacré-Cœur, Paris','sight'),
+    st('2027-03-11','11:00','12:30','오르세 미술관','7구',"Musée d'Orsay, Paris",'sight','11:00 입장','메트로 12호선 · 22분'),
+    st('2027-03-11','13:00','14:00','카페 드 플로르 점심','생제르맹데프레','Café de Flore, Paris','food','','도보 · 12분'),
+    st('2027-03-11','15:00','17:30','루브르 박물관','1구 · 드농관부터','Louvre Museum, Paris','sight','15:00 입장','메트로 1호선 · 15분'),
+    st('2027-03-11','19:30','21:00','센강 유람선','알마 다리 선착장','Bateaux Mouches, Paris','sight','19:30','도보 · 10분'),
+    st('2027-03-12','10:00','14:00','베르사유 궁전','정원까지 넉넉히','Palace of Versailles','sight','10:00 입장','RER C · 45분'),
+    st('2027-03-12','15:30','17:00','몽파르나스 타워 전망대','15구','Montparnasse Tower, Paris','sight','','RER C · 45분'),
+    st('2027-03-13','10:00','12:00','마레 지구 산책','3·4구','Le Marais, Paris','shop'),
+    st('2027-03-13','16:30','18:00','에펠탑 2층','트로카데로에서 사진 먼저','Eiffel Tower, Paris','sight','16:30'),
+    st('2027-03-14','11:30','13:30','CDG 공항 · 택스리펀','2E 터미널','Paris Charles de Gaulle Airport Terminal 2E','etc','','RER B · 50분')
+  ];
+  var td = function (t, d, done) { return {id: nid(), text: t, date: d || '', done: !!done}; };
+  s.todos = [td('여권 유효기간 확인 (6개월 이상)', '', true), td('멀티 어댑터 (C타입)', ''), td('여행자 보험 가입', '2027-02-09'), td('eSIM 구매', '2027-03-04'), td('나비고 교통카드 충전', '2027-03-11'), td('택스리펀 서류 챙기기', '2027-03-14')];
+  s.bookings = [
+    {id: nid(), date: '2027-03-11', time: '11:00', name: '오르세 미술관', kind: '입장권', url: ''},
+    {id: nid(), date: '2027-03-11', time: '15:00', name: '루브르 박물관', kind: '입장권', url: ''},
+    {id: nid(), date: '2027-03-12', time: '10:00', name: '베르사유 궁전', kind: '입장권', url: ''}
+  ];
+  s.spends = [{id: nid(), amt: 38, cur: 'EUR', cat: '식사', memo: '카페 드 플로르', date: '2027-03-11'}];
+  return s;
+}
+function tripDays() {
+  var out = [], d = S.trip.start, i = 1;
+  if (!d || !S.trip.end || S.trip.end < d) return [{date: d, label: 'Day 1'}];
+  while (d <= S.trip.end && i <= 60) { out.push({date: d, label: 'Day ' + i}); d = addDays(d, 1); i++; }
+  return out;
+}
+function dayLabel(date) { var t = tripDays().filter(function (x) { return x.date === date; })[0]; return t ? t.label : ''; }
+function stopsOn(date) { return S.stops.filter(function (s) { return s.date === date; }).sort(function (a, b) { return (a.start || '99').localeCompare(b.start || '99'); }); }
+function todosOn(date) { return S.todos.filter(function (t) { return t.date === date; }); }
+function dday() {
+  var today = nowIn(S.trip.homeTz || 'Asia/Seoul').date;
+  var diff = Math.round((parseD(S.trip.start) - parseD(today)) / 86400000);
+  if (diff > 0) return 'D-' + diff;
+  if (today <= S.trip.end) return '여행 중';
+  return '다녀옴';
+}
+
+/* ---------- storage ---------- */
+function lsGet() { try { var v = localStorage.getItem(LS_KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function lsSet() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
+function commit(msg) { lsSet(); if (msg) toast(msg); render(); scheduleSave(); }
+function scheduleSave() { if (!ref) return; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
+function flush() {
+  if (!ref || !S) return;
+  var body = JSON.stringify(S);
+  if (body === lastSaved) return;
+  lastSaved = body;
+  ref.set({v: 1, state: JSON.parse(body), updatedAt: Date.now()}).then(function () {
+    syncStatus = 'ok';
+  }, function (e) {
+    lastSaved = '';
+    syncStatus = 'error';
+    toast(e && e.code === 'permission-denied' ? '저장 권한이 없어요. Firestore 규칙을 확인해 주세요' : '저장하지 못했어요. 잠시 후 다시 시도해요');
+    render();
+  });
+}
+function configured() { return typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId; }
+function connect() {
+  if (!configured()) { authReady = true; loaded = true; localMode = true; syncStatus = 'local'; render(); return; }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  var fs = firebase.firestore();
+  try { fs.enablePersistence({synchronizeTabs: true}).catch(function () {}); } catch (e) {}
+  firebase.auth().getRedirectResult().catch(function (e) { authError = authMsg(e); render(); });
+  firebase.auth().onAuthStateChanged(function (u) {
+    fbUser = u; authReady = true;
+    if (unsub) { unsub(); unsub = null; }
+    ref = null; lastSaved = '';
+    if (!u) { loaded = true; render(); return; }
+    localMode = false; loaded = false; syncStatus = 'connecting'; render();
+    ref = fs.collection('users').doc(u.uid);
+    var timer = setTimeout(function () { if (!loaded) { loaded = true; syncStatus = 'slow'; render(); } }, 10000);
+    unsub = ref.onSnapshot(function (snap) {
+      if (snap.metadata.hasPendingWrites) return;
+      if (!snap.metadata.fromCache) { clearTimeout(timer); syncStatus = 'ok'; }
+      var data = snap.exists ? snap.data() : null;
+      var remote = data && data.state ? data.state : null;
+      if (!loaded) {
+        loaded = true;
+        if (remote) { S = clone(remote); lastSaved = JSON.stringify(S); lsSet(); }
+        else if (S) scheduleSave();
+        render(); return;
+      }
+      if (remote) {
+        var j = JSON.stringify(remote);
+        if (j !== lastSaved && j !== JSON.stringify(S)) { S = clone(remote); lastSaved = j; lsSet(); render(); }
+      }
+    }, function (e) {
+      clearTimeout(timer); loaded = true; syncStatus = 'error';
+      if (e && e.code === 'permission-denied') toast('Firestore 규칙을 확인해 주세요');
+      render();
+    });
+  });
+}
+var authError = '';
+function authMsg(e) {
+  var c = e && e.code || '';
+  if (c === 'auth/unauthorized-domain') return '이 주소가 Firebase 승인된 도메인에 없어요. Authentication → 설정 → 승인된 도메인에 추가해 주세요.';
+  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return '';
+  if (c === 'auth/operation-not-allowed') return 'Firebase에서 Google 로그인이 아직 꺼져 있어요.';
+  return '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.';
+}
+function signIn() {
+  authError = '';
+  var p = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(p).catch(function (e) {
+    if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) { firebase.auth().signInWithRedirect(p); return; }
+    authError = authMsg(e); render();
+  });
+}
+
+/* ---------- theme ---------- */
+function applyTheme() {
+  var key = (S && S.settings && S.settings.theme) || '블루';
+  var a = THEMES[key] || THEMES['블루'], dp = DEEP[key] || DEEP['블루'];
+  var rgb = [1, 3, 5].map(function (i) { return parseInt(a.slice(i, i + 2), 16); });
+  var mix = function (k) { return '#' + rgb.map(function (c) { return ('0' + Math.round(c * k + 255 * (1 - k)).toString(16)).slice(-2); }).join(''); };
+  var r = document.documentElement.style;
+  r.setProperty('--accent', a); r.setProperty('--deep', dp); r.setProperty('--tint', mix(0.55)); r.setProperty('--soft', mix(0.3));
+}
+
+/* ---------- toast ---------- */
+var toastTimer = null;
+function toast(m) { ui.toast = m; clearTimeout(toastTimer); toastTimer = setTimeout(function () { ui.toast = ''; render(); }, 1800); }
+
+/* ---------- screens ---------- */
+function checkBtn(on, act, id, label) {
+  return '<button class="check' + (on ? ' on' : '') + '" data-act="' + act + '" data-id="' + id + '" aria-pressed="' + on + '" aria-label="' + esc(label) + '">' + (on ? svg(I.check, 14, 3) : '') + '</button>';
+}
+
+function screenHome() {
+  var t = S.trip, days = tripDays();
+  var left = S.todos.filter(function (x) { return !x.done; }).length;
+  var sd = parseD(t.start), ed = parseD(t.end);
+  var range = sd.getFullYear() + '.' + pad(sd.getMonth() + 1) + '.' + pad(sd.getDate()) + ' ' + DOW[sd.getDay()] + ' – ' + pad(ed.getMonth() + 1) + '.' + pad(ed.getDate()) + ' ' + DOW[ed.getDay()];
+  var h = '';
+  h += '<div class="head"><div><div class="eyebrow">다가오는 여행</div><h1>내 여행</h1></div><button class="ibtn" data-act="tab" data-tab="settings" aria-label="설정">' + svg(I.gear) + '</button></div>';
+  h += '<section class="card" style="background:var(--accent);border-color:rgba(255,255,255,.6);border-radius:28px;padding:20px;display:flex;flex-direction:column;gap:16px;color:var(--on)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div style="display:flex;flex-direction:column;gap:4px;min-width:0">' +
+    '<span style="font-size:13px;font-weight:500;color:var(--ink2)">' + esc([t.country, t.city].filter(Boolean).join(' · ')) + '</span>' +
+    '<span style="font-size:26px;font-weight:700;letter-spacing:-.5px">' + esc(t.title) + '</span>' +
+    '<span class="num" style="font-size:14px;font-weight:500;color:var(--ink2)">' + range + '</span></div>' +
+    '<span class="num" style="background:var(--ink);color:#fff;font-weight:700;font-size:14px;padding:7px 13px;border-radius:999px;white-space:nowrap">' + dday() + '</span></div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">' +
+    tile('일정', S.stops.length + '곳') + tile('남은 할 일', left + '개') + tile('예약', S.bookings.length + '건') + '</div></section>';
+  var stay = t.stay || {};
+  if (stay.name || stay.address) {
+    h += '<a class="card" href="' + mapUrl(stay.address || stay.name) + '" target="_blank" rel="noopener" aria-label="숙소 위치 구글 지도에서 열기" style="padding:10px 12px 10px 10px;display:flex;align-items:center;gap:12px;text-decoration:none">' +
+      '<span style="width:48px;height:48px;border-radius:16px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex-shrink:0">' + svg(I.house, 22) + '</span>' +
+      '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span class="eyebrow" style="font-size:12px">내 숙소' + (stay.checkin ? ' · 체크인 ' + esc(stay.checkin) : '') + '</span>' +
+      '<span style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(stay.name || stay.address) + '</span>' +
+      (stay.address ? '<span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + svg(I.pin, 12, 2.2) + esc(stay.address) + '</span>' : '') + '</span>' +
+      '<span style="display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 13px;border-radius:18px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;flex-shrink:0">' + svg(I.map, 14) + '지도</span></a>';
+  } else {
+    h += '<button class="card" data-act="sheet" data-type="stay" style="padding:14px 16px;display:flex;align-items:center;gap:12px;text-align:left;font-size:14px;color:var(--ink2)"><span style="width:44px;height:44px;border-radius:14px;background:var(--soft);display:flex;align-items:center;justify-content:center">' + svg(I.house) + '</span>숙소를 등록하면 여기서 바로 지도를 열 수 있어요</button>';
+  }
+  h += '<div class="sec-head"><h2>일자별 일정</h2><button class="link" data-act="tab" data-tab="calendar">달력으로 보기</button></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:10px">';
+  days.forEach(function (d) {
+    var dt = parseD(d.date), list = stopsOn(d.date), dw = dt.getDay();
+    h += '<button data-act="openDay" data-date="' + d.date + '" style="background:#fff;border:1px solid #E6E8EC;display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;text-align:left;width:100%">' +
+      '<span style="width:44px;display:flex;flex-direction:column;align-items:center;flex-shrink:0"><span class="num" style="font-size:20px;font-weight:700;line-height:1.1">' + dt.getDate() + '</span><span style="font-size:12px;font-weight:500;color:' + (dw === 0 ? '#C42B2B' : dw === 6 ? '#2F5BD3' : 'var(--muted)') + '">' + DOW[dw] + '</span></span>' +
+      '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:700">' + d.label + ' <span style="font-weight:400;color:var(--muted)">· ' + list.length + '곳</span></span>' +
+      '<span style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (list.length ? esc(list.map(function (s) { return s.title; }).join(' → ')) : '아직 일정이 없어요') + '</span></span>' +
+      '<span style="color:#9AA0AA">' + svg(I.next, 18) + '</span></button>';
+  });
+  h += '</div>';
+  var soon = S.todos.filter(function (x) { return !x.done && x.date; }).sort(function (a, b) { return a.date.localeCompare(b.date); }).slice(0, 3);
+  h += '<div class="sec-head"><h2>곧 마감인 할 일</h2><button class="link" data-act="tab" data-tab="todo">전체 보기</button></div>';
+  h += '<div class="card list">' + (soon.length ? soon.map(function (x) {
+    return '<div class="lrow">' + checkBtn(false, 'toggleTodo', x.id, x.text + ' 완료') + '<span style="flex:1;font-size:14px">' + esc(x.text) + '</span><span class="tag num">' + mdDow(x.date) + '</span></div>';
+  }).join('') : '<div class="empty">날짜가 정해진 할 일이 없어요</div>') + '</div>';
+  return h;
+}
+function tile(label, val) { return '<div style="background:rgba(255,255,255,.55);border-radius:18px;padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:500;color:var(--ink2)">' + label + '</span><span class="num" style="font-size:18px;font-weight:700">' + val + '</span></div>'; }
+
+function screenTimeline() {
+  var days = tripDays();
+  if (!ui.day || !days.some(function (d) { return d.date === ui.day; })) {
+    var today = nowIn(S.trip.tz).date;
+    ui.day = days.some(function (d) { return d.date === today; }) ? today : days[0].date;
+  }
+  var date = ui.day, list = stopsOn(date), todos = todosOn(date);
+  var lc = nowIn(S.trip.tz), hc = nowIn(S.trip.homeTz);
+  var h = '<div class="head"><div><div class="eyebrow">' + esc(S.trip.title) + '</div><h1>일정</h1></div>' +
+    (S.settings.dual ? '<div class="num" style="text-align:right;font-size:12px;color:var(--muted);line-height:1.5">현지 <b style="color:var(--ink)">' + lc.hm + '</b><br>' + esc(tzName(S.trip.homeTz)) + ' ' + hc.hm + '</div>' : '') + '</div>';
+  h += '<div class="card daytabs" role="tablist" aria-label="날짜 선택">' + days.map(function (d) {
+    var on = d.date === date;
+    return '<button role="tab" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '" data-act="day" data-date="' + d.date + '"><span class="num" style="font-size:13px;font-weight:700">' + d.label + '</span><span style="font-size:11px;font-weight:500">' + mdDow(d.date) + '</span></button>';
+  }).join('') + '</div>';
+  var moveCount = list.filter(function (s) { return s.move; }).length;
+  h += '<div class="chips"><span class="chip" style="cursor:default">장소 ' + list.length + '곳</span>' + (list[0] && list[0].start ? '<span class="chip num" style="cursor:default">첫 일정 ' + list[0].start + '</span>' : '') + (moveCount && S.settings.move ? '<span class="chip" style="cursor:default">이동 ' + moveCount + '번</span>' : '') + '</div>';
+  if (todos.length) {
+    h += '<div style="border-radius:20px;padding:10px 16px 4px;background:var(--soft);border:1px solid var(--tint)"><div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2)">' + svg(I.todo, 14, 2.2) + '이 날 할 일</div>' +
+      todos.map(function (x) { return '<div style="display:flex;align-items:center;gap:10px;min-height:46px">' + checkBtn(x.done, 'toggleTodo', x.id, x.text) + '<span style="font-size:14px" class="' + (x.done ? 'done' : '') + '">' + esc(x.text) + '</span></div>'; }).join('') + '</div>';
+  }
+  if (!list.length) {
+    h += '<div class="card empty" style="padding:28px 18px">이 날 일정이 아직 없어요.<br><button class="btn" style="margin-top:14px" data-act="sheet" data-type="stop" data-date="' + date + '">일정 추가</button></div>';
+    return h;
+  }
+  var showNow = lc.date === date, nowM = toMin(lc.hm), nowDone = false;
+  h += '<div style="display:flex;flex-direction:column">';
+  list.forEach(function (s, i) {
+    if (showNow && !nowDone && toMin(s.start) != null && toMin(s.start) > nowM) { h += nowLine(lc.hm); nowDone = true; }
+    if (s.move && S.settings.move && i > 0) {
+      h += '<div style="display:flex;gap:10px;align-items:center;height:44px"><div style="width:48px"></div><div style="width:14px;align-self:stretch;display:flex;justify-content:center"><div style="border-left:2px dashed #CDD1D8"></div></div>' +
+        '<span style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:14px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2)">' + svg(I.train, 14) + esc(s.move) + '</span></div>';
+    }
+    var dur = (toMin(s.end) != null && toMin(s.start) != null) ? toMin(s.end) - toMin(s.start) : 0;
+    var sight = s.cat === 'sight';
+    h += '<div style="display:flex;gap:10px">' +
+      '<div class="num" style="width:48px;flex-shrink:0;text-align:right;padding-top:14px"><div style="font-size:14px;font-weight:700">' + esc(s.start || '—') + '</div><div style="font-size:12px;color:var(--muted);margin-top:2px">' + esc(s.end || '') + '</div></div>' +
+      '<div style="width:14px;flex-shrink:0;display:flex;flex-direction:column;align-items:center"><div style="width:12px;height:12px;border-radius:6px;margin-top:18px;background:' + (sight ? 'var(--deep)' : '#B4B9C2') + ';box-shadow:0 0 0 3px ' + (sight ? 'var(--tint)' : '#ECEEF1') + '"></div><div style="flex:1;width:2px;background:#E1E3E8;margin-top:4px"></div></div>' +
+      '<div class="card" style="flex:1;min-width:0;min-height:' + Math.min(200, Math.round(64 + dur * 0.3)) + 'px;border-radius:22px;padding:12px 6px 12px 16px;display:flex;margin-bottom:10px">' +
+      '<button data-act="sheet" data-type="stop" data-id="' + s.id + '" style="flex:1;min-width:0;border:0;background:transparent;text-align:left;padding:2px 0 0;display:flex;flex-direction:column;gap:4px" aria-label="' + esc(s.title) + ' 편집">' +
+      '<span style="font-size:15px;font-weight:700;line-height:1.35">' + esc(s.title) + '</span>' +
+      '<span style="font-size:12px;color:var(--muted)">' + esc([catName(s.cat), s.place, fmtDur(dur)].filter(Boolean).join(' · ')) + '</span>' +
+      (s.booked ? '<span class="tag" style="align-self:flex-start;margin-top:2px">' + svg(I.check, 12, 3) + '예약 ' + esc(s.booked) + '</span>' : '') +
+      (s.note ? '<span style="font-size:12px;color:var(--ink2);margin-top:2px">' + esc(s.note) + '</span>' : '') + '</button>' +
+      '<a href="' + mapUrl(s.q || (s.title + ' ' + (s.place || '') + ' ' + (S.trip.city || ''))) + '" target="_blank" rel="noopener" aria-label="' + esc(s.title) + ' 구글 지도에서 열기" style="width:44px;height:44px;margin-top:-6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ink)"><span style="width:34px;height:34px;border-radius:17px;background:var(--bg);border:1px solid #ECEDF0;display:flex;align-items:center;justify-content:center">' + svg(I.pin, 16) + '</span></a>' +
+      '</div></div>';
+  });
+  if (showNow && !nowDone) h += nowLine(lc.hm);
+  h += '</div>';
+  return h;
+}
+function nowLine(hm) { return '<div style="display:flex;align-items:center;margin:0 0 10px 59px"><span style="width:12px;height:12px;border-radius:6px;background:#fff;border:3px solid var(--deep);flex-shrink:0"></span><span style="flex:1;height:2px;background:var(--deep)"></span><span class="num" style="font-size:11px;font-weight:700;color:#fff;background:var(--deep);padding:3px 8px;border-radius:999px">지금 ' + hm + '</span></div>'; }
+function catName(k) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === k) return CATS[i][1]; return ''; }
+
+function screenCalendar() {
+  if (ui.calY == null) { var sd = parseD(S.trip.start); ui.calY = sd.getFullYear(); ui.calM = sd.getMonth(); }
+  if (!ui.calSel) ui.calSel = S.trip.start;
+  var y = ui.calY, m = ui.calM, first = new Date(y, m, 1), len = new Date(y, m + 1, 0).getDate(), off = first.getDay();
+  var todoDates = {}; S.todos.forEach(function (x) { if (x.date && !x.done) todoDates[x.date] = 1; });
+  var h = '<div><div class="eyebrow">' + esc(S.trip.title) + '</div><h1>달력</h1></div>';
+  h += '<section class="card" style="border-radius:30px;padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px">' +
+    '<div style="height:48px;border-radius:24px;background:var(--bg);border:1px solid #ECEDF0;display:flex;align-items:center;justify-content:space-between;padding:0 2px">' +
+    '<button class="x" style="color:var(--ink);width:44px;height:44px" data-act="month" data-d="-1" aria-label="이전 달">' + svg(I.back, 18, 2.2) + '</button>' +
+    '<span class="num" style="font-size:16px;font-weight:700">' + y + '년 ' + (m + 1) + '월</span>' +
+    '<button class="x" style="color:var(--ink);width:44px;height:44px" data-act="month" data-d="1" aria-label="다음 달">' + svg(I.next, 18, 2.2) + '</button></div>' +
+    '<div class="cal-grid" style="text-align:center;font-size:12px;font-weight:600;color:var(--muted);padding:6px 0 2px">' + DOW.map(function (d, i) { return '<span style="color:' + (i === 0 ? '#C42B2B' : i === 6 ? '#2F5BD3' : 'inherit') + '">' + d + '</span>'; }).join('') + '</div><div class="cal-grid">';
+  for (var i = 0; i < off; i++) h += '<div style="height:50px"></div>';
+  for (var d = 1; d <= len; d++) {
+    var ds = y + '-' + pad(m + 1) + '-' + pad(d), dw = (off + d - 1) % 7;
+    var trip = ds >= S.trip.start && ds <= S.trip.end, endp = ds === S.trip.start || ds === S.trip.end, sel = ds === ui.calSel;
+    var st = trip && (ds === S.trip.start || dw === 0), en = trip && (ds === S.trip.end || dw === 6);
+    var rad = (st ? '20px' : '0') + ' ' + (en ? '20px' : '0') + ' ' + (en ? '20px' : '0') + ' ' + (st ? '20px' : '0');
+    var bg = endp ? 'var(--accent)' : sel ? 'var(--ink)' : 'transparent';
+    var fg = endp ? 'var(--on)' : sel ? '#fff' : (dw === 0 ? '#C42B2B' : dw === 6 ? '#2F5BD3' : 'var(--ink)');
+    h += '<button class="cal-cell" data-act="calSel" data-date="' + ds + '" aria-label="' + (m + 1) + '월 ' + d + '일" aria-pressed="' + sel + '">' +
+      '<span style="width:100%;height:40px;display:flex;align-items:center;justify-content:center;background:' + (trip ? 'var(--soft)' : 'transparent') + ';border-radius:' + rad + ';box-shadow:' + (trip ? 'inset 0 0 0 1px var(--tint)' : 'none') + '">' +
+      '<span class="num" style="width:38px;height:38px;border-radius:19px;display:flex;align-items:center;justify-content:center;background:' + bg + ';color:' + fg + ';font-size:14px;font-weight:' + (trip || sel ? 700 : 500) + ';box-shadow:' + ((endp && sel) ? '0 0 0 2px #fff,0 0 0 4px var(--ink)' : (endp || sel) ? '0 2px 6px rgba(22,24,29,.16)' : 'none') + '">' + d + '</span></span>' +
+      '<span style="width:5px;height:5px;border-radius:3px;background:' + (todoDates[ds] ? 'var(--deep)' : 'transparent') + '"></span></button>';
+  }
+  h += '</div><div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:6px 0 2px;font-size:12px;color:var(--ink2)">' +
+    '<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:20px;height:10px;border-radius:5px;background:var(--soft);box-shadow:inset 0 0 0 1px var(--tint)"></span>여행 기간</span>' +
+    '<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:3px;background:var(--deep)"></span>할 일 있는 날</span></div></section>';
+  var sd2 = ui.calSel, lab = dayLabel(sd2), list = stopsOn(sd2), todos = todosOn(sd2), dd = parseD(sd2);
+  h += '<div class="sec-head"><h2>' + (dd.getMonth() + 1) + '월 ' + dd.getDate() + '일 ' + DOW[dd.getDay()] + '요일' + (lab ? ' <span class="tag num" style="vertical-align:3px;background:var(--accent)">' + lab + '</span>' : '') + '</h2>' + (lab ? '<button class="link" data-act="openDay" data-date="' + sd2 + '">타임라인</button>' : '') + '</div>';
+  if (list.length) {
+    h += '<div class="card list">' + list.map(function (s) {
+      return '<button class="lrow" data-act="sheet" data-type="stop" data-id="' + s.id + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:transparent;text-align:left;padding:0;min-height:58px">' +
+        '<span class="num" style="width:44px;flex-shrink:0;display:flex;flex-direction:column"><b style="font-size:14px">' + esc(s.start || '—') + '</b><span style="font-size:11px;color:var(--muted)">' + esc(s.end || '') + '</span></span>' +
+        '<span style="width:3px;height:30px;border-radius:2px;background:' + (s.cat === 'sight' ? 'var(--deep)' : '#C9CDD4') + ';flex-shrink:0"></span>' +
+        '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:600">' + esc(s.title) + '</span><span style="font-size:12px;color:var(--muted)">' + esc([catName(s.cat), s.place].filter(Boolean).join(' · ')) + '</span></span></button>';
+    }).join('') + '</div>';
+  }
+  if (todos.length) {
+    h += '<div style="border-radius:20px;padding:10px 16px 4px;background:var(--soft);border:1px solid var(--tint)"><div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2)">' + svg(I.todo, 14, 2.2) + '이 날 할 일</div>' +
+      todos.map(function (x) { return '<div style="display:flex;align-items:center;gap:10px;min-height:46px">' + checkBtn(x.done, 'toggleTodo', x.id, x.text) + '<span style="font-size:14px" class="' + (x.done ? 'done' : '') + '">' + esc(x.text) + '</span></div>'; }).join('') + '</div>';
+  }
+  if (!list.length && !todos.length) h += '<div class="card empty">등록된 일정이나 할 일이 없어요.</div>';
+  h += '<div class="row2"><button class="btn soft" data-act="sheet" data-type="todo" data-date="' + sd2 + '">' + '+ 이 날 할 일' + '</button><button class="btn" data-act="sheet" data-type="stop" data-date="' + sd2 + '">+ 일정 추가</button></div>';
+  return h;
+}
+
+function screenTodo() {
+  var total = S.todos.length, done = S.todos.filter(function (x) { return x.done; }).length;
+  var d = ui.draft, days = tripDays();
+  var h = '<div><div class="eyebrow">' + esc(S.trip.title) + '</div><h1>할 일</h1></div>';
+  h += '<section class="card" style="border-radius:26px;padding:14px;display:flex;flex-direction:column;gap:10px">' +
+    '<span style="font-size:13px;font-weight:700;padding:0 4px">할 일 추가</span>' +
+    '<form data-form="todoAdd" style="display:flex;gap:8px;margin:0"><label class="sr" for="todo-text">새 할 일</label>' +
+    '<input id="todo-text" class="field" data-bind="draft.text" value="' + esc(d.text) + '" placeholder="환전하기" autocomplete="off" style="border-radius:23px;height:46px;flex:1;min-width:0">' +
+    '<button class="btn" type="submit">추가</button></form>' +
+    '<div class="chips"><button class="chip' + (!d.date ? ' on' : '') + '" data-act="draftDate" data-date="">날짜 없음</button>' +
+    days.map(function (x) { return '<button class="chip num' + (d.date === x.date ? ' on' : '') + '" data-act="draftDate" data-date="' + x.date + '">' + x.label + '</button>'; }).join('') +
+    '<label class="chip' + (d.date && !days.some(function (x) { return x.date === d.date; }) ? ' on' : '') + '" style="padding:0 6px 0 12px">' + svg(I.cal, 14) + '<span class="sr">날짜 직접 선택</span><input type="date" data-bind="draft.date" value="' + esc(d.date) + '" style="border:0;background:transparent;font-size:14px;width:128px;height:30px" class="num"></label></div>' +
+    '<span style="font-size:12px;color:var(--muted);padding:0 4px">' + (d.date ? mdDow(d.date) + (dayLabel(d.date) ? ' · ' + dayLabel(d.date) + ' 일정 화면과 달력에 표시돼요' : '에 추가 · 달력에 표시돼요') : '날짜 없이 ‘언제든’에 추가돼요') + '</span></section>';
+  h += '<section class="card" style="border-radius:26px;padding:16px 18px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;font-weight:700">준비 진행률</span><span class="num" style="font-size:14px;font-weight:600;color:var(--muted)">' + done + ' / ' + total + '</span></div>' +
+    '<div style="height:10px;background:var(--line2);border-radius:5px;overflow:hidden"><div style="height:10px;width:' + (total ? Math.round(done / total * 100) : 0) + '%;background:var(--deep);border-radius:5px"></div></div></section>';
+  var F = [['all','전체'],['left','남은 것'],['nodate','날짜 없음']];
+  h += '<div class="card seg" role="tablist" style="grid-template-columns:repeat(3,minmax(0,1fr))">' + F.map(function (f) { return '<button role="tab" aria-selected="' + (ui.todoFilter === f[0]) + '" class="' + (ui.todoFilter === f[0] ? 'on' : '') + '" data-act="todoFilter" data-f="' + f[0] + '">' + f[1] + '</button>'; }).join('') + '</div>';
+  var vis = S.todos.filter(function (x) { return ui.todoFilter !== 'left' || !x.done; });
+  var secs = [], und = vis.filter(function (x) { return !x.date; });
+  if (und.length) secs.push({title: '언제든', sub: '날짜 없이 챙길 것', items: und});
+  if (ui.todoFilter !== 'nodate') {
+    var keys = []; vis.forEach(function (x) { if (x.date && keys.indexOf(x.date) < 0) keys.push(x.date); }); keys.sort();
+    keys.forEach(function (k) { var l = dayLabel(k); secs.push({title: mdDow(k) + (l ? ' · ' + l : ''), sub: l ? '일정 화면에도 표시' : '달력에 표시', items: vis.filter(function (x) { return x.date === k; })}); });
+  }
+  if (!secs.length) h += '<div class="card empty">' + (total ? '모두 끝냈어요' : '첫 할 일을 위에서 추가해 보세요') + '</div>';
+  secs.forEach(function (s) {
+    h += '<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:8px;padding:0 6px"><span class="num" style="font-size:13px;font-weight:700">' + esc(s.title) + '</span><span style="font-size:12px;color:var(--muted)">' + s.sub + '</span></div>' +
+      '<div class="card list">' + s.items.map(function (x) {
+        return '<div class="lrow">' + checkBtn(x.done, 'toggleTodo', x.id, x.text) + '<span style="flex:1;font-size:15px" class="' + (x.done ? 'done' : '') + '">' + esc(x.text) + '</span><button class="x" data-act="delTodo" data-id="' + x.id + '" aria-label="' + esc(x.text) + ' 삭제">' + svg(I.x, 16) + '</button></div>';
+      }).join('') + '</div></section>';
+  });
+  return h;
+}
+
+function screenWallet() {
+  var t = S.trip, stay = t.stay || {}, sp = ui.spend;
+  if (!sp.cur) sp.cur = t.currency || 'EUR';
+  var cur = CURRENCIES[sp.cur] || CURRENCIES.EUR;
+  var totalKrw = S.spends.reduce(function (a, s) { return a + s.amt * rate(s.cur); }, 0);
+  var localTotal = S.spends.filter(function (s) { return s.cur === t.currency; }).reduce(function (a, s) { return a + s.amt; }, 0);
+  var budget = t.budget || 0;
+  var h = '<div><div class="eyebrow">' + esc(t.title) + '</div><h1>지갑</h1></div>';
+  h += '<section class="card" style="border-radius:30px;padding:8px 8px 8px 8px;display:flex;align-items:center;gap:12px">' +
+    '<span style="width:44px;height:44px;border-radius:22px;background:var(--tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">' + svg(I.house) + '</span>' +
+    '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(stay.name || '숙소 미등록') + '</span><span style="font-size:12px;color:var(--muted)">' + esc([stay.address, stay.checkin ? '체크인 ' + stay.checkin : ''].filter(Boolean).join(' · ') || '눌러서 숙소 정보를 넣어요') + '</span></span>' +
+    (stay.name || stay.address ? '<a class="ibtn" href="' + mapUrl(stay.address || stay.name) + '" target="_blank" rel="noopener" aria-label="숙소 지도 열기" style="box-shadow:none;background:var(--bg)">' + svg(I.map, 18) + '</a>' : '') +
+    '<button class="ibtn" data-act="sheet" data-type="stay" aria-label="숙소 편집" style="box-shadow:none;background:var(--bg)">' + svg(I.edit, 18) + '</button></section>';
+  h += '<div class="sec-head"><h2>예약 · 바우처</h2><button class="link" data-act="sheet" data-type="booking">+ 추가</button></div>';
+  var bk = S.bookings.slice().sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+  h += '<div class="card" style="padding:2px 6px 2px 16px">' + (bk.length ? bk.map(function (b) {
+    var lab = dayLabel(b.date);
+    return '<div class="lrow" style="min-height:60px"><button data-act="sheet" data-type="booking" data-id="' + b.id + '" style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:transparent;padding:0;text-align:left;min-height:58px">' +
+      '<span class="num" style="width:44px;flex-shrink:0;display:flex;flex-direction:column"><b style="font-size:14px">' + esc(b.time || '—') + '</b><span style="font-size:11px;color:var(--muted)">' + (b.date ? (parseD(b.date).getMonth() + 1) + '/' + parseD(b.date).getDate() : '') + '</span></span>' +
+      '<span style="width:3px;height:30px;border-radius:2px;background:var(--deep);flex-shrink:0"></span>' +
+      '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:600">' + esc(b.name) + '</span><span style="font-size:12px;color:var(--muted)">' + esc([lab, b.kind].filter(Boolean).join(' · ')) + '</span></span></button>' +
+      (b.url ? '<a href="' + esc(b.url) + '" target="_blank" rel="noopener" aria-label="' + esc(b.name) + ' 바우처 열기" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ink)"><span style="width:36px;height:36px;border-radius:18px;background:var(--bg);display:flex;align-items:center;justify-content:center">' + svg(I.link, 16) + '</span></a>' : '') + '</div>';
+  }).join('') : '<div class="empty">항공권, 입장권, 투어 예약을 모아두세요</div>') + '</div>';
+  var unitTxt = '대략 ' + cur.sym + cur.unit.toLocaleString('en-US') + ' ≈ ' + won(cur.unit * rate(sp.cur));
+  h += '<div class="sec-head"><h2>지출</h2><span style="font-size:12px;color:var(--muted)">' + unitTxt + '</span></div>';
+  var amtNum = parseFloat(String(sp.amt).replace(/,/g, ''));
+  h += '<section class="card" style="border-radius:26px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px"><span style="display:flex;flex-direction:column;gap:2px"><span class="num" style="font-size:22px;font-weight:700">≈ ' + won(totalKrw) + '</span><span style="font-size:12px;color:var(--muted)">현지 ' + money(localTotal, t.currency) + ' · 원화는 대략</span></span>' +
+    (budget ? '<span style="font-size:12px;color:var(--muted);text-align:right">예산<br>' + won(budget) + '</span>' : '') + '</div>' +
+    (budget ? '<div style="height:10px;background:var(--line2);border-radius:5px;overflow:hidden"><div style="height:10px;width:' + Math.min(100, Math.round(totalKrw / budget * 100)) + '%;background:var(--deep);border-radius:5px"></div></div>' : '') +
+    '<form data-form="spendAdd" style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:18px;background:var(--bg);margin:0">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:12px;font-weight:700;color:var(--ink2)">지출 입력</span>' +
+    '<label style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 12px;border-radius:17px;background:#fff;border:1px solid #E6E8EC;font-size:12px;color:var(--muted)">통화<select data-bind="spend.cur" style="border:0;background:transparent;font-size:14px;font-weight:700;height:30px" class="num">' +
+    Object.keys(CURRENCIES).map(function (k) { return '<option value="' + k + '"' + (k === sp.cur ? ' selected' : '') + '>' + k + ' ' + CURRENCIES[k].sym.trim() + '</option>'; }).join('') + '</select></label></div>' +
+    '<div style="display:flex;gap:8px"><label class="sr" for="sp-amt">금액 (' + cur.name + ')</label><div style="position:relative;width:118px;flex-shrink:0"><span aria-hidden="true" class="num" style="position:absolute;left:13px;top:13px;font-size:15px;color:var(--muted)">' + esc(cur.sym.trim()) + '</span>' +
+    '<input id="sp-amt" class="field num" data-bind="spend.amt" inputmode="decimal" autocomplete="off" placeholder="0" value="' + esc(sp.amt) + '" style="background:#fff;border-radius:23px;height:46px;padding-left:' + (cur.sym.trim().length > 1 ? 40 : 28) + 'px"></div>' +
+    '<label class="sr" for="sp-memo">지출 내용</label><input id="sp-memo" class="field" data-bind="spend.memo" autocomplete="off" placeholder="기념품 가게" value="' + esc(sp.memo) + '" style="background:#fff;border-radius:23px;height:46px;flex:1;min-width:0"></div>' +
+    '<div class="chips" style="align-items:center">' + SPEND_CATS.map(function (c) { return '<button type="button" class="chip' + (sp.cat === c ? ' on' : '') + '" data-act="spendCat" data-c="' + c + '" style="height:32px">' + c + '</button>'; }).join('') +
+    '<button class="btn" type="submit" style="margin-left:auto;height:36px;padding:0 16px">추가</button></div>' +
+    '<span id="sp-preview" style="font-size:12px;color:var(--muted)">' + spendPreview(amtNum, sp) + '</span></form>' +
+    (S.spends.length ? '<div>' + S.spends.map(function (s) {
+      return '<div class="lrow" style="min-height:48px"><span class="tag">' + esc(s.cat) + '</span><span style="flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(s.memo || s.cat) + '</span>' +
+        '<span class="num" style="display:flex;flex-direction:column;align-items:flex-end"><b style="font-size:14px">' + money(s.amt, s.cur) + '</b><span style="font-size:11px;color:var(--muted)">≈ ' + won(s.amt * rate(s.cur)) + '</span></span>' +
+        '<button class="x" data-act="delSpend" data-id="' + s.id + '" aria-label="' + esc(s.memo || s.cat) + ' 지출 삭제">' + svg(I.x, 16) + '</button></div>';
+    }).join('') + '</div>' : '') + '</section>';
+  return h;
+}
+function spendPreview(n, sp) { return n > 0 ? money(n, sp.cur) + ' ≈ ' + won(n * rate(sp.cur)) + ' · ' + sp.cat + '으로 기록돼요' : '현지 통화로 입력하면 원화로 대략 환산돼요'; }
+
+function screenSettings() {
+  var t = S.trip, lc = nowIn(t.tz), hc = nowIn(t.homeTz), diff = tzOffset(t.tz) - tzOffset(t.homeTz);
+  var h = '<div class="head" style="justify-content:flex-start"><button class="ibtn" data-act="tab" data-tab="home" aria-label="뒤로">' + svg(I.back) + '</button><h1 style="font-size:24px">설정</h1></div>';
+  h += group('여행', '<div class="list">' +
+    setRow('여행 정보', esc(t.title) + ' · ' + mdDow(t.start) + '–' + mdDow(t.end), 'trip') +
+    setRow('숙소', esc((t.stay && (t.stay.name || t.stay.address)) || '미등록'), 'stay') + '</div>');
+  h += group('시간', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><div class="row2" style="gap:8px">' +
+    clock('여행지 · ' + tzName(t.tz), lc.hm, ampm(lc.hm) + ' · ' + utcLabel(t.tz), 'var(--soft)') +
+    clock('내 기준 · ' + tzName(t.homeTz), hc.hm, ampm(hc.hm) + ' · ' + utcLabel(t.homeTz), 'var(--bg)') + '</div>' +
+    '<span style="font-size:12px;color:var(--muted);padding:0 4px">시차 ' + (diff > 0 ? '+' : '') + diff + '시간</span>' +
+    '<label class="flabel" for="tz-trip" style="margin-top:4px">여행지 시간대</label>' + tzSelect('tz-trip', 'trip.tz', t.tz) +
+    '<label class="flabel" for="tz-home">내 기준 시간대</label>' + tzSelect('tz-home', 'trip.homeTz', t.homeTz) + '</div>');
+  h += group('테마 색 · ' + esc(S.settings.theme), '<div style="padding:14px"><div role="radiogroup" aria-label="테마 색" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));row-gap:6px">' +
+    Object.keys(THEMES).map(function (k) { var on = k === S.settings.theme; return '<button role="radio" aria-checked="' + on + '" aria-label="' + k + '" data-act="theme" data-k="' + k + '" style="height:44px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center"><span style="width:32px;height:32px;border-radius:16px;background:' + THEMES[k] + ';display:flex;align-items:center;justify-content:center;box-shadow:' + (on ? '0 0 0 2px #fff,0 0 0 4px var(--ink)' : 'none') + '">' + (on ? svg(I.check, 14, 3) : '') + '</span></button>'; }).join('') + '</div></div>');
+  h += group('표시', '<div class="list">' + toggleRow('dual', '한국 시간 같이 보기', '일정 화면 위에 내 기준 시간 표시') + toggleRow('move', '이동 메모 표시', '장소 사이 교통수단과 소요 시간') + '</div>');
+  var cur = CURRENCIES[t.currency] || {sym: t.currency + ' ', unit: 1, rate: 0};
+  h += group('예산 · 환율', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px">' +
+    '<div><label class="flabel" for="set-budget">여행 예산 (원)</label><input id="set-budget" class="field num" inputmode="numeric" data-bind="trip.budget" value="' + esc(t.budget || '') + '" placeholder="1500000"></div>' +
+    '<div><label class="flabel" for="set-rate">' + t.currency + ' 환율 · ' + cur.sym.trim() + cur.unit + '당 원 (대략)</label><input id="set-rate" class="field num" inputmode="decimal" data-bind="rate" value="' + esc(Math.round(rate(t.currency) * cur.unit * 100) / 100) + '"></div>' +
+    '<span style="font-size:12px;color:var(--muted);padding:0 4px">기본값은 대략적인 예시 환율이에요. 실제 환율에 맞게 고쳐 쓰세요.</span></div>');
+  var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
+  h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
+    '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
+  return h;
+}
+function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
+function setRow(label, val, type) { return '<button class="lrow" data-act="sheet" data-type="' + type + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:transparent;padding:0;text-align:left"><span style="font-size:15px;flex-shrink:0">' + label + '</span><span style="flex:1;min-width:0;text-align:right;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + val + '</span><span style="color:#9AA0AA">' + svg(I.next, 16) + '</span></button>'; }
+function clock(label, hm, sub, bg) { return '<div style="background:' + bg + ';border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--ink2);font-weight:600">' + esc(label) + '</span><span class="num" style="font-size:24px;font-weight:700">' + hm + '</span><span style="font-size:12px;color:var(--muted)">' + sub + '</span></div>'; }
+function tzSelect(id, bind, val) { return '<select id="' + id + '" class="field" data-bind="' + bind + '">' + tzOptions(val) + '</select>'; }
+function toggleRow(k, label, desc) { var on = !!S.settings[k]; return '<button class="lrow" role="switch" aria-checked="' + on + '" data-act="toggleSet" data-k="' + k + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:transparent;padding:0;text-align:left;min-height:62px"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">' + label + '</span><span style="font-size:12px;color:var(--muted)">' + desc + '</span></span><span aria-hidden="true" style="width:50px;height:30px;border-radius:15px;background:' + (on ? 'var(--deep)' : '#D5D8DE') + ';position:relative;flex-shrink:0"><span style="position:absolute;top:3px;left:' + (on ? 23 : 3) + 'px;width:24px;height:24px;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(22,24,29,.25)"></span></span></button>'; }
+
+function screenLogin() {
+  return '<div style="padding-top:12vh;display:flex;flex-direction:column;gap:14px;align-items:stretch">' +
+    '<div style="width:64px;height:64px;border-radius:20px;background:var(--accent);display:flex;align-items:center;justify-content:center;align-self:center">' + svg(I.cal, 30) + '</div>' +
+    '<div style="text-align:center"><h1>여행 캘린더</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.6">일정, 할 일, 예약, 지출을 한곳에.<br>로그인하면 폰과 노트북 어디서든 이어서 볼 수 있어요.</p></div>' +
+    '<button class="btn" data-act="signIn" style="height:52px;border-radius:26px;margin-top:10px">Google 계정으로 로그인</button>' +
+    (authError ? '<p role="alert" style="margin:0;font-size:13px;color:#A32D2D;text-align:center;line-height:1.5">' + esc(authError) + '</p>' : '') +
+    '<button class="link" data-act="useLocal" style="align-self:center">로그인 없이 이 기기에서만 쓰기</button></div>';
+}
+function screenOnboard() {
+  var today = nowIn('Asia/Seoul').date;
+  return '<div style="padding-top:20px"><div class="eyebrow">여행 캘린더</div><h1>첫 여행을 만들어요</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0">날짜별 일정, 할 일, 예약, 지출을 한곳에서 봐요.</p></div>' +
+    '<form class="card" data-form="createTrip" style="padding:18px;display:flex;flex-direction:column;gap:12px;margin:0">' + tripFields({title: '', country: '', city: '', start: addDays(today, 30), end: addDays(today, 33), currency: 'USD', tz: 'Asia/Seoul', homeTz: 'Asia/Seoul'}) +
+    '<button class="btn" type="submit" style="margin-top:4px">여행 만들기</button></form>' +
+    '<button class="btn soft" data-act="loadSample">예시 여행(파리)으로 먼저 둘러보기</button>';
+}
+function tripFields(t) {
+  var c = findCountry(t.country), known = c && c.cities.some(function (x) { return x.name === t.city; });
+  return '<div><label class="flabel" for="f-title">여행 이름</label><input id="f-title" name="title" class="field" value="' + esc(t.title) + '" placeholder="파리 3박 4일"></div>' +
+    '<div class="row2"><div><label class="flabel" for="f-country">나라</label><select id="f-country" name="country" class="field">' + countryOptions(t.country) + '</select></div>' +
+    '<div><label class="flabel" for="f-city">도시</label><select id="f-city" name="citySel" class="field">' + cityOptions(t.country, t.city) + '</select></div></div>' +
+    '<div id="f-city-other-wrap" style="display:' + (t.city && !known ? 'block' : 'none') + '"><label class="flabel" for="f-city-other">도시 이름</label><input id="f-city-other" name="cityOther" class="field" value="' + esc(known ? '' : t.city) + '" placeholder="도시 이름을 적어요"></div>' +
+    '<div class="row2"><div><label class="flabel" for="f-start">출발</label><input id="f-start" name="start" type="date" class="field num" required value="' + esc(t.start) + '"></div><div><label class="flabel" for="f-end">도착</label><input id="f-end" name="end" type="date" class="field num" required value="' + esc(t.end) + '"></div></div>' +
+    '<div class="row2"><div><label class="flabel" for="f-cur">현지 통화</label><select id="f-cur" name="currency" class="field">' + curOptions(t.currency) + '</select></div>' +
+    '<div><label class="flabel" for="f-tz">여행지 시간대</label><select id="f-tz" name="tz" class="field">' + tzOptions(t.tz) + '</select></div></div>' +
+    '<p id="f-auto" style="margin:-4px 0 0 4px;font-size:12px;color:var(--muted)">나라와 도시를 고르면 통화와 시간대가 자동으로 맞춰져요.</p>' +
+    '<p id="f-err" role="alert" style="margin:0;font-size:13px;color:#A32D2D"></p>';
+}
+function setSelect(sel, val, label) {
+  if (!sel || !val) return;
+  if (!Array.prototype.some.call(sel.options, function (o) { return o.value === val; })) { var op = document.createElement('option'); op.value = val; op.textContent = label || val; sel.appendChild(op); }
+  sel.value = val;
+}
+function onCountryPicked(form) {
+  var c = findCountry(form.querySelector('#f-country').value); if (!c) return;
+  var city = form.querySelector('#f-city'); city.innerHTML = cityOptions(c.name, c.cities[0].name);
+  form.querySelector('#f-city-other-wrap').style.display = 'none';
+  setSelect(form.querySelector('#f-cur'), c.cur, c.cur);
+  setSelect(form.querySelector('#f-tz'), c.cities[0].tz, tzName(c.cities[0].tz) + ' (' + utcLabel(c.cities[0].tz) + ')');
+  var t = form.querySelector('#f-title'); if (t && !t.value) t.placeholder = c.cities[0].name + ' 여행';
+  var a = form.querySelector('#f-auto'); if (a) a.textContent = '통화 ' + c.cur + ' · 시간대 ' + tzName(c.cities[0].tz) + ' (' + utcLabel(c.cities[0].tz) + ')로 맞췄어요.';
+}
+function onCityPicked(form) {
+  var sel = form.querySelector('#f-city'), opt = sel.options[sel.selectedIndex];
+  var other = sel.value === '__other';
+  form.querySelector('#f-city-other-wrap').style.display = other ? 'block' : 'none';
+  if (other) { var i = form.querySelector('#f-city-other'); if (i) i.focus(); return; }
+  var tz = opt && opt.getAttribute('data-tz');
+  if (tz) { setSelect(form.querySelector('#f-tz'), tz, tzName(tz)); var a = form.querySelector('#f-auto'); if (a) a.textContent = '시간대를 ' + tzName(tz) + ' (' + utcLabel(tz) + ')로 맞췄어요.'; }
+  var t = form.querySelector('#f-title'); if (t && !t.value) t.placeholder = sel.value + ' 여행';
+}
+function cityFromForm(f) { return f.citySel === '__other' ? (f.cityOther || '') : (f.citySel || ''); }
+
+/* ---------- sheets ---------- */
+function sheetHtml() {
+  var sh = ui.sheet; if (!sh) return '';
+  var body = '';
+  if (sh.type === 'stop') {
+    var s = sh.id ? S.stops.filter(function (x) { return x.id === sh.id; })[0] : null;
+    s = s || {date: sh.date || ui.day || S.trip.start, start: '', end: '', title: '', place: '', q: '', cat: 'sight', booked: '', move: '', note: ''};
+    var days = tripDays();
+    body = '<h3>' + (sh.id ? '일정 편집' : '일정 추가') + '</h3>' +
+      '<div><label class="flabel" for="s-title">장소 · 할 것</label><input id="s-title" name="title" class="field" required value="' + esc(s.title) + '" placeholder="오르세 미술관"></div>' +
+      '<div><label class="flabel" for="s-date">날짜</label><select id="s-date" name="date" class="field">' + days.map(function (d) { return '<option value="' + d.date + '"' + (d.date === s.date ? ' selected' : '') + '>' + d.label + ' · ' + mdDow(d.date) + '</option>'; }).join('') +
+      (days.some(function (d) { return d.date === s.date; }) ? '' : '<option value="' + esc(s.date) + '" selected>' + mdDow(s.date) + '</option>') + '</select></div>' +
+      '<div class="row2"><div><label class="flabel" for="s-start">시작</label><input id="s-start" name="start" type="time" class="field num" value="' + esc(s.start) + '"></div><div><label class="flabel" for="s-end">끝</label><input id="s-end" name="end" type="time" class="field num" value="' + esc(s.end) + '"></div></div>' +
+      '<div><span class="flabel">종류</span><div class="chips" data-group="cat">' + CATS.map(function (c) { return '<button type="button" class="chip' + (s.cat === c[0] ? ' on' : '') + '" data-act="pickChip" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div><input type="hidden" name="cat" value="' + esc(s.cat) + '"></div>' +
+      '<div><label class="flabel" for="s-place">위치 메모</label><input id="s-place" name="place" class="field" value="' + esc(s.place) + '" placeholder="7구 · 5층 시계창"></div>' +
+      '<div><label class="flabel" for="s-q">구글 지도 검색어 (비우면 이름으로 찾아요)</label><input id="s-q" name="q" class="field" value="' + esc(s.q) + '" placeholder="Musée d\'Orsay, Paris"></div>' +
+      '<div class="row2"><div><label class="flabel" for="s-booked">예약 정보</label><input id="s-booked" name="booked" class="field" value="' + esc(s.booked) + '" placeholder="11:00 입장"></div><div><label class="flabel" for="s-move">여기까지 이동</label><input id="s-move" name="move" class="field" value="' + esc(s.move) + '" placeholder="메트로 · 15분"></div></div>' +
+      '<div><label class="flabel" for="s-note">메모</label><textarea id="s-note" name="note" class="field" rows="2">' + esc(s.note) + '</textarea></div>' +
+      sheetButtons(!!sh.id);
+  } else if (sh.type === 'todo') {
+    body = '<h3>할 일 추가</h3><div><label class="flabel" for="t-text">할 일</label><input id="t-text" name="text" class="field" required placeholder="오디오가이드 받기"></div>' +
+      '<div><label class="flabel" for="t-date">날짜</label><input id="t-date" name="date" type="date" class="field num" value="' + esc(sh.date || '') + '"></div>' + sheetButtons(false);
+  } else if (sh.type === 'booking') {
+    var b = sh.id ? S.bookings.filter(function (x) { return x.id === sh.id; })[0] : null;
+    b = b || {date: S.trip.start, time: '', name: '', kind: '입장권', url: ''};
+    body = '<h3>' + (sh.id ? '예약 편집' : '예약 추가') + '</h3>' +
+      '<div><label class="flabel" for="b-name">이름</label><input id="b-name" name="name" class="field" required value="' + esc(b.name) + '" placeholder="루브르 박물관"></div>' +
+      '<div class="row2"><div><label class="flabel" for="b-date">날짜</label><input id="b-date" name="date" type="date" class="field num" value="' + esc(b.date) + '"></div><div><label class="flabel" for="b-time">시간</label><input id="b-time" name="time" type="time" class="field num" value="' + esc(b.time) + '"></div></div>' +
+      '<div><label class="flabel" for="b-kind">종류</label><input id="b-kind" name="kind" class="field" value="' + esc(b.kind) + '" placeholder="입장권 · 항공권 · 투어"></div>' +
+      '<div><label class="flabel" for="b-url">바우처 링크 (선택)</label><input id="b-url" name="url" type="url" class="field" value="' + esc(b.url) + '" placeholder="https://"></div>' + sheetButtons(!!sh.id);
+  } else if (sh.type === 'stay') {
+    var st = S.trip.stay || {};
+    body = '<h3>숙소</h3><div><label class="flabel" for="y-name">숙소 이름</label><input id="y-name" name="name" class="field" value="' + esc(st.name) + '" placeholder="호텔 이름"></div>' +
+      '<div><label class="flabel" for="y-addr">주소 또는 지도 검색어</label><input id="y-addr" name="address" class="field" value="' + esc(st.address) + '" placeholder="12 Rue de Rivoli, Paris"></div>' +
+      '<div><label class="flabel" for="y-in">체크인</label><input id="y-in" name="checkin" type="time" class="field num" value="' + esc(st.checkin) + '"></div>' + sheetButtons(false);
+  } else if (sh.type === 'trip') {
+    body = '<h3>여행 정보</h3>' + tripFields(S.trip) + sheetButtons(false);
+  } else if (sh.type === 'reset') {
+    body = '<h3>새 여행을 시작할까요?</h3><p style="margin:0;font-size:14px;color:var(--ink2);line-height:1.6">지금 여행의 일정, 할 일, 예약, 지출이 모두 지워져요. 필요하면 먼저 설정에서 ‘백업 복사’를 눌러 두세요.</p>' +
+      '<div class="row2"><button type="button" class="btn soft" data-act="closeSheet">취소</button><button type="button" class="btn danger" data-act="doReset">모두 지우기</button></div>';
+  }
+  return '<div class="overlay" data-act="overlay"><form class="sheet" data-form="sheet" role="dialog" aria-modal="true" aria-label="편집"><div class="grab"></div>' + body + '</form></div>';
+}
+function sheetButtons(canDelete) {
+  return '<p id="sheet-err" role="alert" style="margin:0;font-size:13px;color:#A32D2D"></p><div style="display:flex;gap:8px">' + (canDelete ? '<button type="button" class="btn danger" data-act="sheetDelete">삭제</button>' : '') + '<button type="button" class="btn soft" data-act="closeSheet" style="flex:1">취소</button><button type="submit" class="btn" style="flex:1">저장</button></div>';
+}
+
+/* ---------- render ---------- */
+var lastTab = null;
+function render() {
+  var app = document.getElementById('app');
+  var main = app.querySelector('.main');
+  var keepScroll = main && lastTab === ui.tab ? main.scrollTop : 0;
+  var active = document.activeElement, activeBind = active && active.getAttribute && active.getAttribute('data-bind'), selStart = null;
+  try { if (activeBind && active.selectionStart != null) selStart = active.selectionStart; } catch (e) {}
+  applyTheme();
+  var body;
+  if (!authReady) body = '<div class="empty">불러오는 중…</div>';
+  else if (!fbUser && !localMode) body = screenLogin();
+  else if (!S) body = loaded ? screenOnboard() : '<div class="empty">불러오는 중…</div>';
+  else if (ui.tab === 'calendar') body = screenCalendar();
+  else if (ui.tab === 'timeline') body = screenTimeline();
+  else if (ui.tab === 'todo') body = screenTodo();
+  else if (ui.tab === 'wallet') body = screenWallet();
+  else if (ui.tab === 'settings') body = screenSettings();
+  else body = screenHome();
+  var nav = '';
+  if (S && (fbUser || localMode)) {
+    var tabs = [['home','개요',I.home],['calendar','달력',I.cal],['timeline','일정',I.tl],['todo','할 일',I.todo],['wallet','지갑',I.wallet]];
+    nav = '<nav class="nav" aria-label="하단 메뉴">' + tabs.map(function (t) { var on = ui.tab === t[0]; return '<button class="' + (on ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '"' + (on ? ' aria-current="page"' : '') + '>' + svg(t[2]) + t[1] + '</button>'; }).join('') + '</nav>';
+    if (ui.tab === 'timeline') nav += '<button class="fab" data-act="sheet" data-type="stop" aria-label="일정 추가">' + svg(I.plus, 24, 2.2) + '</button>';
+  }
+  app.innerHTML = '<main class="main">' + body + '</main>' + nav + sheetHtml() + (ui.toast ? '<div class="toast" role="status">' + esc(ui.toast) + '</div>' : '');
+  var m2 = app.querySelector('.main'); if (m2) m2.scrollTop = keepScroll;
+  lastTab = ui.tab;
+  if (activeBind && !ui.sheet) {
+    var el = app.querySelector('[data-bind="' + activeBind + '"]');
+    if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} }
+  }
+}
+
+/* ---------- events ---------- */
+function readForm(form) { var o = {}; Array.prototype.forEach.call(form.querySelectorAll('[name]'), function (el) { o[el.name] = el.value.trim(); }); return o; }
+function showErr(id, msg) { var e = document.getElementById(id); if (e) e.textContent = msg; }
+function validTrip(f, errId) {
+  if (!f.country) { showErr(errId, '나라를 골라 주세요'); return false; }
+  if (!cityFromForm(f)) { showErr(errId, '도시를 골라 주세요'); return false; }
+  if (!f.title) f.title = cityFromForm(f) + ' 여행';
+  if (!f.start || !f.end) { showErr(errId, '출발일과 도착일을 골라 주세요'); return false; }
+  if (f.end < f.start) { showErr(errId, '도착일이 출발일보다 빨라요'); return false; }
+  if (Math.round((parseD(f.end) - parseD(f.start)) / 86400000) > 59) { showErr(errId, '여행은 60일까지 만들 수 있어요'); return false; }
+  return true;
+}
+
+var A = {
+  tab: function (el) { ui.tab = el.dataset.tab; ui.sheet = null; render(); },
+  openDay: function (el) { ui.day = el.dataset.date; ui.tab = 'timeline'; render(); },
+  day: function (el) { ui.day = el.dataset.date; render(); },
+  month: function (el) { var m = ui.calM + Number(el.dataset.d), y = ui.calY; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } ui.calM = m; ui.calY = y; render(); },
+  calSel: function (el) { ui.calSel = el.dataset.date; render(); },
+  toggleTodo: function (el) { var t = S.todos.filter(function (x) { return x.id === el.dataset.id; })[0]; if (t) { t.done = !t.done; commit(); } },
+  delTodo: function (el) { S.todos = S.todos.filter(function (x) { return x.id !== el.dataset.id; }); commit('할 일을 지웠어요'); },
+  todoFilter: function (el) { ui.todoFilter = el.dataset.f; render(); },
+  draftDate: function (el) { ui.draft.date = el.dataset.date; render(); },
+  spendCat: function (el) { ui.spend.cat = el.dataset.c; render(); },
+  delSpend: function (el) { S.spends = S.spends.filter(function (x) { return x.id !== el.dataset.id; }); commit('지출을 지웠어요'); },
+  theme: function (el) { S.settings.theme = el.dataset.k; commit(); },
+  toggleSet: function (el) { S.settings[el.dataset.k] = !S.settings[el.dataset.k]; commit(); },
+  sheet: function (el) { ui.sheet = {type: el.dataset.type, id: el.dataset.id || null, date: el.dataset.date || null}; render(); var f = document.querySelector('.sheet input:not([type=hidden]), .sheet select'); if (f && !el.dataset.id) try { f.focus(); } catch (e) {} },
+  closeSheet: function () { ui.sheet = null; render(); },
+  overlay: function (el, e) { if (e.target === el) { ui.sheet = null; render(); } },
+  pickChip: function (el) { var g = el.parentNode; Array.prototype.forEach.call(g.querySelectorAll('.chip'), function (c) { c.classList.toggle('on', c === el); }); var hid = g.parentNode.querySelector('input[type=hidden]'); if (hid) hid.value = el.dataset.v; },
+  sheetDelete: function () {
+    var sh = ui.sheet;
+    if (sh.type === 'stop') S.stops = S.stops.filter(function (x) { return x.id !== sh.id; });
+    if (sh.type === 'booking') S.bookings = S.bookings.filter(function (x) { return x.id !== sh.id; });
+    ui.sheet = null; commit('삭제했어요');
+  },
+  signIn: function () { signIn(); },
+  useLocal: function () { localMode = true; loaded = true; syncStatus = 'local'; render(); },
+  signOut: function () { firebase.auth().signOut().then(function () { S = null; lastSaved = ''; try { localStorage.removeItem(LS_KEY); } catch (e) {} ui.tab = 'home'; localMode = false; render(); }); },
+  loadSample: function () { S = sampleState(); ui = Object.assign(ui, {tab: 'home', day: null, calY: null, calSel: null}); commit('예시 여행을 불러왔어요'); },
+  doReset: function () { S = null; ui.sheet = null; ui.tab = 'home'; ui.day = null; ui.calY = null; ui.calSel = null; try { localStorage.removeItem(LS_KEY); } catch (e) {} if (ref) { lastSaved = ''; ref.delete().catch(function () {}); } render(); },
+  copyJson: function () {
+    var txt = JSON.stringify(S, null, 2);
+    try { navigator.clipboard.writeText(txt).then(function () { toast('백업을 복사했어요'); render(); }, function () { toast('복사가 막혀 있어요'); render(); }); } catch (e) { toast('복사가 막혀 있어요'); render(); }
+  }
+};
+
+document.addEventListener('click', function (e) {
+  var el = e.target.closest('[data-act]');
+  if (!el || !document.getElementById('app').contains(el)) return;
+  var f = A[el.dataset.act];
+  if (f) { if (el.tagName === 'BUTTON' && el.type !== 'submit') e.preventDefault(); f(el, e); }
+});
+
+document.addEventListener('submit', function (e) {
+  var form = e.target, kind = form.getAttribute('data-form');
+  e.preventDefault();
+  if (kind === 'todoAdd') {
+    var txt = ui.draft.text.trim(); if (!txt) { document.getElementById('todo-text').focus(); return; }
+    S.todos.push({id: nid(), text: txt, date: ui.draft.date || '', done: false}); ui.draft.text = ''; commit('할 일을 추가했어요');
+    var tt = document.getElementById('todo-text'); if (tt) tt.focus();
+  } else if (kind === 'spendAdd') {
+    var n = parseFloat(String(ui.spend.amt).replace(/,/g, ''));
+    if (!(n > 0)) { var p = document.getElementById('sp-preview'); if (p) { p.textContent = '금액을 먼저 입력해 주세요'; p.style.color = '#A32D2D'; } return; }
+    var today = nowIn(S.trip.tz).date;
+    S.spends.unshift({id: nid(), amt: n, cur: ui.spend.cur, cat: ui.spend.cat, memo: ui.spend.memo.trim(), date: today});
+    ui.spend.amt = ''; ui.spend.memo = ''; commit('지출을 기록했어요');
+  } else if (kind === 'createTrip') {
+    var f = readForm(form); if (!validTrip(f, 'f-err')) return;
+    S = emptyState({title: f.title, country: f.country, city: cityFromForm(f), start: f.start, end: f.end, currency: f.currency, tz: f.tz, homeTz: 'Asia/Seoul', budget: 0, stay: {name: '', address: '', checkin: ''}});
+    ui.tab = 'home'; commit('여행을 만들었어요');
+  } else if (kind === 'sheet') {
+    var sh = ui.sheet, v = readForm(form);
+    if (sh.type === 'stop') {
+      if (!v.title) { showErr('sheet-err', '장소나 할 것을 적어 주세요'); return; }
+      if (v.start && v.end && v.end < v.start) { showErr('sheet-err', '끝나는 시간이 시작보다 빨라요'); return; }
+      var rec = {date: v.date, start: v.start, end: v.end, title: v.title, place: v.place, q: v.q, cat: v.cat || 'sight', booked: v.booked, move: v.move, note: v.note};
+      if (sh.id) { var s = S.stops.filter(function (x) { return x.id === sh.id; })[0]; if (s) Object.assign(s, rec); }
+      else S.stops.push(Object.assign({id: nid()}, rec));
+      ui.day = v.date;
+    } else if (sh.type === 'todo') {
+      if (!v.text) { showErr('sheet-err', '할 일을 적어 주세요'); return; }
+      S.todos.push({id: nid(), text: v.text, date: v.date || '', done: false});
+    } else if (sh.type === 'booking') {
+      if (!v.name) { showErr('sheet-err', '이름을 적어 주세요'); return; }
+      if (v.url && !/^https?:\/\//i.test(v.url)) { showErr('sheet-err', '링크는 https:// 로 시작해야 해요'); return; }
+      var br = {name: v.name, date: v.date, time: v.time, kind: v.kind, url: v.url};
+      if (sh.id) { var b = S.bookings.filter(function (x) { return x.id === sh.id; })[0]; if (b) Object.assign(b, br); }
+      else S.bookings.push(Object.assign({id: nid()}, br));
+    } else if (sh.type === 'stay') {
+      S.trip.stay = {name: v.name, address: v.address, checkin: v.checkin};
+    } else if (sh.type === 'trip') {
+      if (!validTrip(v, 'f-err')) return;
+      Object.assign(S.trip, {title: v.title, country: v.country, city: cityFromForm(v), start: v.start, end: v.end, currency: v.currency, tz: v.tz});
+      ui.calY = null; ui.calSel = null; ui.spend.cur = null;
+    }
+    ui.sheet = null; commit('저장했어요');
+  }
+});
+
+document.addEventListener('input', function (e) {
+  var b = e.target.getAttribute && e.target.getAttribute('data-bind'); if (!b) return;
+  var v = e.target.value;
+  if (b === 'draft.text') ui.draft.text = v;
+  else if (b === 'spend.amt') { ui.spend.amt = v; var p = document.getElementById('sp-preview'); if (p) { p.style.color = ''; p.textContent = spendPreview(parseFloat(String(v).replace(/,/g, '')), ui.spend); } }
+  else if (b === 'spend.memo') ui.spend.memo = v;
+});
+document.addEventListener('change', function (e) {
+  if (e.target.id === 'f-country') { onCountryPicked(e.target.form); return; }
+  if (e.target.id === 'f-city') { onCityPicked(e.target.form); return; }
+  var b = e.target.getAttribute && e.target.getAttribute('data-bind'); if (!b) return;
+  var v = e.target.value;
+  if (b === 'draft.date') { ui.draft.date = v; render(); }
+  else if (b === 'spend.cur') { ui.spend.cur = v; render(); }
+  else if (b === 'trip.tz' || b === 'trip.homeTz') { S.trip[b.split('.')[1]] = v; commit(); }
+  else if (b === 'trip.budget') { var n = parseInt(String(v).replace(/[^0-9]/g, ''), 10); S.trip.budget = n > 0 ? n : 0; commit('예산을 바꿨어요'); }
+  else if (b === 'rate') { var r = parseFloat(String(v).replace(/,/g, '')); var c = CURRENCIES[S.trip.currency] || CURRENCIES.EUR; if (r > 0) { S.rates = S.rates || {}; S.rates[S.trip.currency] = r / c.unit; commit('환율을 바꿨어요'); } }
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; render(); } });
+
+/* clocks tick without writing anything */
+setInterval(function () { if (S && !ui.sheet && (ui.tab === 'timeline' || ui.tab === 'settings')) { var a = document.activeElement; if (!a || a === document.body) render(); } }, 30000);
+
+/* ---------- start ---------- */
+S = lsGet();
+if (S && !S.trip) S = null;
+render();
+connect();
+})();
+</script>
+</body>
+</html>
