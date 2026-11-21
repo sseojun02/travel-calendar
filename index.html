@@ -712,7 +712,7 @@ function screenTimeline() {
     if (S.settings.move && i > 0 && (s.move || placeOf(list[i - 1]) !== placeOf(s))) {
       var mv = s.move || (moveBusy ? '이동 시간 계산 중…' : '길찾기');
       h += '<div style="display:flex;gap:10px;align-items:center;height:44px"><div style="width:48px"></div><div style="width:14px;align-self:stretch;display:flex;justify-content:center"><div style="border-left:2px dashed #CDD1D8"></div></div>' +
-        '<a href="' + dirUrl(list[i - 1], s) + '" target="_blank" rel="noopener" aria-label="' + esc(list[i - 1].title) + '에서 ' + esc(s.title) + '까지 구글 지도 길찾기" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2);text-decoration:none">' + svg(s.move && /도보/.test(s.move) ? I.pin : I.train, 14) + esc(mv) + (s.moveAuto && s.move ? '<span style="font-size:10px;color:var(--muted)">AI</span>' : '') + svg(I.next, 12, 2.2) + '</a></div>';
+        '<a href="' + dirUrl(list[i - 1], s) + '" target="_blank" rel="noopener" aria-label="' + esc(list[i - 1].title) + '에서 ' + esc(s.title) + '까지 구글 지도 길찾기" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2);text-decoration:none">' + svg(s.move && /도보/.test(s.move) ? I.pin : I.train, 14) + esc(mv) + (s.moveAuto && s.move ? '<span title="자동 계산" aria-label="자동 계산" style="display:inline-flex;color:var(--deep);opacity:.75">' + svg(I.spark, 11, 2) + '</span>' : '') + svg(I.next, 12, 2.2) + '</a></div>';
     }
     var dur = (toMin(s.end) != null && toMin(s.start) != null) ? toMin(s.end) - toMin(s.start) : 0;
     var sight = s.cat === 'sight';
@@ -885,7 +885,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-c</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-d</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
