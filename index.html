@@ -894,7 +894,7 @@ function toggleRow(k, label, desc) { var on = !!S.settings[k]; return '<button c
 
 function screenLogin() {
   return '<div style="padding-top:12vh;display:flex;flex-direction:column;gap:14px;align-items:stretch">' +
-    '<img src="icon-192.png" alt="" width="72" height="72" style="border-radius:20px;align-self:center">' +
+    '<img src="icon-192.png?v=2" alt="" width="72" height="72" style="border-radius:20px;align-self:center">' +
     '<div style="text-align:center"><h1>길동무</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.6">여행 길에 함께하는 일정 동무.<br>일정, 할 일, 예약, 지출을 한곳에.<br>로그인하면 폰과 노트북 어디서든 이어서 볼 수 있어요.</p></div>' +
     (inApp() ? '<div style="background:#FFF4E5;border:1px solid #F5D7A8;border-radius:18px;padding:14px 16px;font-size:13px;line-height:1.6;color:#6B4A16">카카오톡 같은 앱 안에서 열려 있어요. 이 화면에서는 구글 로그인이 안 돼요.<br>' + (/KAKAOTALK/i.test(navigator.userAgent) ? '<a href="kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href) + '" style="display:inline-block;margin-top:8px;font-weight:700;color:#16181D">사파리 · 크롬으로 열기 →</a>' : '오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>를 눌러 주세요.') + '</div>' : '') +
     '<button class="btn" data-act="signIn" style="height:52px;border-radius:26px;margin-top:10px">Google 계정으로 로그인</button>' +
