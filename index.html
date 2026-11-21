@@ -404,6 +404,34 @@ function fmtD(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + 
 function addDays(s, n) { var d = parseD(s); d.setDate(d.getDate() + n); return fmtD(d); }
 function mdDow(s) { var d = parseD(s); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + DOW[d.getDay()]; }
 function toMin(t) { if (!t) return null; var p = t.split(':').map(Number); return p[0] * 60 + p[1]; }
+function fromMin(m) { m = Math.max(0, Math.min(23 * 60 + 59, Math.round(m))); return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+function moveMin(s) { var t = String(s.move || ''), h = t.match(/(\d+)\s*시간/), m = t.match(/(\d+)\s*분/); return (h ? +h[1] * 60 : 0) + (m ? +m[1] : 0); }
+function isTravelStop(s) { return /이동|→|돌아오기|가는 길/.test(s.title || ''); }
+function isFixedStop(s) { return !!(s.booked || s.auto); }
+function stopEnd(s) { return toMin(s.end) != null ? toMin(s.end) : toMin(s.start); }
+/* 이동 시간을 넣었을 때 모자란 구간 */
+function gapShort(prev, cur) { var a = stopEnd(prev), b = toMin(cur.start), mv = isTravelStop(cur) ? 0 : moveMin(cur); if (a == null || b == null || !mv) return 0; return Math.max(0, a + mv - b); }
+function dayConflicts(date) { var l = stopsOn(date), n = 0; for (var i = 1; i < l.length; i++) if (gapShort(l[i - 1], l[i]) > 0) n++; return n; }
+function adjustDay(date) {
+  var l = stopsOn(date), moved = 0, stuck = 0;
+  for (var i = 1; i < l.length; i++) {
+    var prev = l[i - 1], cur = l[i], short = gapShort(prev, cur);
+    if (!short) continue;
+    if (!isFixedStop(cur)) {
+      var dur = toMin(cur.end) != null ? toMin(cur.end) - toMin(cur.start) : null;
+      cur.start = fromMin(toMin(cur.start) + short);
+      if (dur != null) {
+        var nx = l[i + 1], lim = nx && isFixedStop(nx) && toMin(nx.start) != null ? toMin(nx.start) - (isTravelStop(nx) ? 0 : moveMin(nx)) : null;
+        var ne = toMin(cur.start) + dur; if (lim != null && ne > lim) ne = Math.max(toMin(cur.start) + 10, lim);
+        cur.end = fromMin(ne);
+      }
+      moved++;
+    } else if (toMin(prev.end) != null && !isFixedStop(prev) && toMin(prev.end) - short >= toMin(prev.start) + 10) {
+      prev.end = fromMin(toMin(prev.end) - short); moved++;
+    } else stuck++;
+  }
+  return {moved: moved, stuck: stuck};
+}
 function fmtDur(m) { if (m == null || m <= 0) return ''; var h = Math.floor(m / 60), r = m % 60; return (h ? h + '시간' : '') + (h && r ? ' ' : '') + (r ? r + '분' : ''); }
 function mapUrl(q) { return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
 function tzName(tz) { for (var i = 0; i < TZS.length; i++) if (TZS[i][0] === tz) return TZS[i][1]; for (var c = 0; c < COUNTRIES.length; c++) { var ci = COUNTRIES[c].cities; for (var j = 0; j < ci.length; j++) if (ci[j].tz === tz) return ci[j].name; } return String(tz).split('/').pop().replace(/_/g, ' '); }
@@ -705,14 +733,17 @@ function screenTimeline() {
     h += '<div class="card empty" style="padding:28px 18px">이 날 일정이 아직 없어요.<br><button class="btn" style="margin-top:14px" data-act="sheet" data-type="stop" data-date="' + date + '">일정 추가</button></div>';
     return h;
   }
+  var nConf = dayConflicts(date), undo = ui.adjUndo && ui.adjUndo.date === date ? ui.adjUndo : null;
+  if (nConf) h += '<div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:10px;background:#FFF7EC;border-color:#F3DDBE;box-shadow:none"><span style="flex:1;font-size:13px;line-height:1.5;color:#7A4510"><b>이동 시간 때문에 ' + nConf + '곳이 겹쳐요.</b><br>다음 일정을 이동 시간만큼 뒤로 미룰까요?</span><button class="btn" data-act="adjustDay" data-date="' + date + '" style="height:40px;flex-shrink:0">시간 맞추기</button></div>';
+  if (undo) h += '<div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:none"><span style="flex:1;font-size:13px;color:var(--ink2)">' + esc(undo.msg) + '</span><button class="btn soft" data-act="undoAdjust" style="height:40px;flex-shrink:0">되돌리기</button></div>';
   var showNow = lc.date === date, nowM = toMin(lc.hm), nowDone = false;
   h += '<div style="display:flex;flex-direction:column">';
   list.forEach(function (s, i) {
     if (showNow && !nowDone && toMin(s.start) != null && toMin(s.start) > nowM) { h += nowLine(lc.hm); nowDone = true; }
-    if (S.settings.move && i > 0 && (s.move || placeOf(list[i - 1]) !== placeOf(s))) {
-      var mv = s.move || (moveBusy ? '이동 시간 계산 중…' : '길찾기');
+    if (S.settings.move && i > 0 && !isTravelStop(s) && (s.move || placeOf(list[i - 1]) !== placeOf(s))) {
+      var mv = s.move || (moveBusy ? '이동 시간 계산 중…' : '길찾기'), sh2 = gapShort(list[i - 1], s);
       h += '<div style="display:flex;gap:10px;align-items:center;height:44px"><div style="width:48px"></div><div style="width:14px;align-self:stretch;display:flex;justify-content:center"><div style="border-left:2px dashed #CDD1D8"></div></div>' +
-        '<a href="' + dirUrl(list[i - 1], s) + '" target="_blank" rel="noopener" aria-label="' + esc(list[i - 1].title) + '에서 ' + esc(s.title) + '까지 구글 지도 길찾기" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2);text-decoration:none">' + svg(s.move && /도보/.test(s.move) ? I.pin : I.train, 14) + esc(mv) + (s.moveAuto && s.move ? '<span title="자동 계산" aria-label="자동 계산" style="display:inline-flex;color:var(--deep);opacity:.75">' + svg(I.spark, 11, 2) + '</span>' : '') + svg(I.next, 12, 2.2) + '</a></div>';
+        '<a href="' + dirUrl(list[i - 1], s) + '" target="_blank" rel="noopener" aria-label="' + esc(list[i - 1].title) + '에서 ' + esc(s.title) + '까지 구글 지도 길찾기" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2);text-decoration:none">' + svg(s.move && /도보/.test(s.move) ? I.pin : I.train, 14) + esc(mv) + (s.moveAuto && s.move ? '<span title="자동 계산" aria-label="자동 계산" style="display:inline-flex;color:var(--deep);opacity:.75">' + svg(I.spark, 11, 2) + '</span>' : '') + svg(I.next, 12, 2.2) + '</a>' + (sh2 ? '<span style="font-size:12px;font-weight:700;color:#A35A12">' + sh2 + '분 부족</span>' : '') + '</div>';
     }
     var dur = (toMin(s.end) != null && toMin(s.start) != null) ? toMin(s.end) - toMin(s.start) : 0;
     var sight = s.cat === 'sight';
@@ -885,7 +916,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-d</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-e</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1037,6 +1068,7 @@ function movePairs() {
     for (var i = 1; i < list.length; i++) {
       var a = list[i - 1], b = list[i], key = placeOf(a) + ' → ' + placeOf(b);
       if (b.move && !b.moveAuto) continue;                 // 직접 적은 건 그대로
+      if (isTravelStop(b)) { if (b.moveAuto && b.move) { b.move = ''; b.moveKey = key; } continue; } // '이동' 일정 자체가 이동 시간
       if (b.moveAuto && b.moveKey === key) continue;      // 이미 계산됨
       if (placeOf(a) === placeOf(b)) { if (b.moveAuto || !b.move) { b.move = ''; b.moveAuto = true; b.moveKey = key; } continue; }
       out.push({stop: b, from: placeOf(a), to: placeOf(b), key: key, city: legFor(d).city || '', country: legFor(d).country || ''});
@@ -1290,7 +1322,7 @@ function validTrip(f, errId, noTitle) {
 }
 
 var A = {
-  tab: function (el) { ui.tab = el.dataset.tab; ui.sheet = null; render(); },
+  tab: function (el) { ui.tab = el.dataset.tab; ui.sheet = null; ui.adjUndo = null; render(); },
   openDay: function (el) { ui.day = el.dataset.date; ui.tab = 'timeline'; render(); },
   leg: function (el) { ui.leg = el.dataset.id === 'all' ? 'all' : el.dataset.id; ui.day = null; render(); },
   day: function (el) { ui.day = el.dataset.date; render(); },
@@ -1305,6 +1337,17 @@ var A = {
   theme: function (el) { S.settings.theme = el.dataset.k; commit(); },
   toggleSet: function (el) { S.settings[el.dataset.k] = !S.settings[el.dataset.k]; commit(); },
   sheet: function (el) { if (el.dataset.type === 'ai') { ui.ai.err = ''; } ui.sheet = {type: el.dataset.type, id: el.dataset.id || null, date: el.dataset.date || null}; render(); if (el.dataset.type === 'ai') { aiAfterRender(true); return; } var f = document.querySelector('.sheet input:not([type=hidden]), .sheet select'); if (f && !el.dataset.id) try { f.focus(); } catch (e) {} },
+  adjustDay: function (el) {
+    var d = el.dataset.date, snap = JSON.stringify(stopsOn(d).map(function (x) { return [x.id, x.start, x.end]; }));
+    var r = adjustDay(d), r2 = adjustDay(d); r.moved += r2.moved;
+    ui.adjUndo = {date: d, snap: snap, msg: r.moved + '곳 시간을 맞췄어요' + (r.stuck ? ' · 예약 때문에 못 맞춘 곳 ' + r.stuck + '곳' : '')};
+    commit(r.moved ? '이동 시간에 맞춰 시간을 조정했어요' : '조정할 곳이 없었어요');
+  },
+  undoAdjust: function () {
+    var u = ui.adjUndo; if (!u) return;
+    JSON.parse(u.snap).forEach(function (a) { var x = S.stops.filter(function (y) { return y.id === a[0]; })[0]; if (x) { x.start = a[1]; x.end = a[2]; } });
+    ui.adjUndo = null; commit('되돌렸어요');
+  },
   recalcMoves: function (el) { stopsOn(el.dataset.date).forEach(function (x) { if (x.moveAuto || !x.move) { x.moveKey = ''; x.moveAuto = true; x.move = ''; } }); moveFailAt = 0; lsSet(); render(); scheduleMoves(0); },
   closeSheet: function () { ui.sheet = null; render(); },
   aiToggle: function (el) { var m = ui.ai.msgs[+el.dataset.m], x = m && m.actions[+el.dataset.i]; if (x && !m.applied) { var box = document.getElementById('ai-msgs'), st = box ? box.scrollTop : 0; x.on = !x.on; render(); box = document.getElementById('ai-msgs'); if (box) box.scrollTop = st; } },
