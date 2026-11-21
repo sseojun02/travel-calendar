@@ -4,10 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F4F5F7">
-<title>여행 캘린더</title>
+<title>길동무</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="여행 캘린더">
+<meta name="apple-mobile-web-app-title" content="길동무">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -891,8 +894,8 @@ function toggleRow(k, label, desc) { var on = !!S.settings[k]; return '<button c
 
 function screenLogin() {
   return '<div style="padding-top:12vh;display:flex;flex-direction:column;gap:14px;align-items:stretch">' +
-    '<div style="width:64px;height:64px;border-radius:20px;background:var(--accent);display:flex;align-items:center;justify-content:center;align-self:center">' + svg(I.cal, 30) + '</div>' +
-    '<div style="text-align:center"><h1>여행 캘린더</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.6">일정, 할 일, 예약, 지출을 한곳에.<br>로그인하면 폰과 노트북 어디서든 이어서 볼 수 있어요.</p></div>' +
+    '<img src="icon-192.png" alt="" width="72" height="72" style="border-radius:20px;align-self:center">' +
+    '<div style="text-align:center"><h1>길동무</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.6">여행 길에 함께하는 일정 동무.<br>일정, 할 일, 예약, 지출을 한곳에.<br>로그인하면 폰과 노트북 어디서든 이어서 볼 수 있어요.</p></div>' +
     (inApp() ? '<div style="background:#FFF4E5;border:1px solid #F5D7A8;border-radius:18px;padding:14px 16px;font-size:13px;line-height:1.6;color:#6B4A16">카카오톡 같은 앱 안에서 열려 있어요. 이 화면에서는 구글 로그인이 안 돼요.<br>' + (/KAKAOTALK/i.test(navigator.userAgent) ? '<a href="kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href) + '" style="display:inline-block;margin-top:8px;font-weight:700;color:#16181D">사파리 · 크롬으로 열기 →</a>' : '오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>를 눌러 주세요.') + '</div>' : '') +
     '<button class="btn" data-act="signIn" style="height:52px;border-radius:26px;margin-top:10px">Google 계정으로 로그인</button>' +
     (authError ? '<p role="alert" style="margin:0;font-size:13px;color:#A32D2D;text-align:center;line-height:1.5">' + esc(authError) + '</p>' : '') +
@@ -900,7 +903,7 @@ function screenLogin() {
 }
 function screenOnboard() {
   var today = nowIn('Asia/Seoul').date;
-  return '<div style="padding-top:20px"><div class="eyebrow">여행 캘린더</div><h1>첫 여행을 만들어요</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0">날짜별 일정, 할 일, 예약, 지출을 한곳에서 봐요.</p></div>' +
+  return '<div style="padding-top:20px"><div class="eyebrow">길동무</div><h1>첫 여행을 만들어요</h1><p style="font-size:14px;color:var(--muted);margin:8px 0 0">날짜별 일정, 할 일, 예약, 지출을 한곳에서 봐요.</p></div>' +
     '<form class="card" data-form="createTrip" style="padding:18px;display:flex;flex-direction:column;gap:12px;margin:0">' + tripFields({title: '', country: '', city: '', start: addDays(today, 30), end: addDays(today, 33), currency: 'USD', tz: 'Asia/Seoul', homeTz: 'Asia/Seoul'}) +
     '<button class="btn" type="submit" style="margin-top:4px">여행 만들기</button></form>' +
     '<button class="btn soft" data-act="loadSample">예시 여행(파리)으로 먼저 둘러보기</button>';
@@ -944,7 +947,7 @@ function cityFromForm(f) { return f.citySel === '__other' ? (f.cityOther || '') 
 
 /* ---------- AI ---------- */
 function aiEntry() {
-  return '<button class="ai-entry" data-act="sheet" data-type="ai"><span class="spk">' + svg(I.spark, 20) + '</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700;color:var(--ink)">AI에게 말하기</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">채팅으로 말하면 숙소·일정·할 일을 알아서 넣어줘요</span></span>' + svg(I.next, 16) + '</button>';
+  return '<button class="ai-entry" data-act="sheet" data-type="ai"><span class="spk">' + svg(I.spark, 20) + '</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700;color:var(--ink)">길동무에게 말하기</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">말로 하면 숙소·일정·할 일을 알아서 넣어줘요</span></span>' + svg(I.next, 16) + '</button>';
 }
 var aiP = null;
 function aiLoad() {
@@ -972,7 +975,7 @@ function aiPrompt(text) {
   };
   var hist = ui.ai.msgs.slice(-9, -1).map(function (m) { return (m.role === 'me' ? '사용자: ' + m.text : 'AI: ' + (m.reply || '') + (m.actions && m.actions.length ? ' [제안: ' + m.actions.map(function (x) { return x.type + ' ' + (x.title || x.name || x.text || x.memo || x.id || ''); }).join(', ') + (m.applied ? ' → 적용됨' : ' → 아직 적용 안 됨') + ']' : '')); });
   return [
-    '너는 해외여행 일정 앱 안의 채팅 도우미야. 사용자의 한국어 말을 앱에 넣거나 고칠 항목(JSON)으로 바꿔.',
+    '너는 해외여행 일정 앱 "길동무" 안의 채팅 도우미 "길동무"야. 사용자의 한국어 말을 앱에 넣거나 고칠 항목(JSON)으로 바꿔.',
     '앱 상태: ' + JSON.stringify(ctx),
     hist.length ? '이전 대화:\n' + hist.join('\n') : '',
     '반드시 아래 형식의 JSON 하나만 출력해:',
@@ -1076,9 +1079,9 @@ function aiApply(msg) {
 }
 function aiSheet() {
   var a = ui.ai, h = '';
-  h += '<div class="ai-head"><h3 style="display:flex;align-items:center;gap:8px;margin:0"><span style="color:var(--deep)">' + svg(I.spark, 20) + '</span>AI에게 말하기</h3><button type="button" class="x" data-act="closeSheet" aria-label="닫기" style="width:44px;height:44px">' + svg(I.x, 18) + '</button></div>';
+  h += '<div class="ai-head"><h3 style="display:flex;align-items:center;gap:8px;margin:0"><span style="color:var(--deep)">' + svg(I.spark, 20) + '</span>길동무에게 말하기</h3><button type="button" class="x" data-act="closeSheet" aria-label="닫기" style="width:44px;height:44px">' + svg(I.x, 18) + '</button></div>';
   h += '<div class="ai-msgs" id="ai-msgs" aria-live="polite">';
-  if (!a.msgs.length) h += '<div class="bub ai">숙소, 일정, 할 일, 예약, 지출을 편하게 말해 주세요. 제가 정리해서 넣어 드릴게요.</div>';
+  if (!a.msgs.length) h += '<div class="bub ai">안녕하세요, 길동무예요. 숙소, 일정, 할 일, 예약, 지출을 편하게 말해 주세요. 제가 정리해서 넣어 드릴게요.</div>';
   a.msgs.forEach(function (m, mi) {
     if (m.role === 'me') { h += '<div class="bub me">' + esc(m.text) + '</div>'; return; }
     h += '<div class="bub ai">' + esc(m.reply || (m.actions.length ? '이렇게 넣을게요.' : '음, 다시 한 번 말해 주시겠어요?')) + '</div>';
@@ -1166,7 +1169,7 @@ function sheetHtml() {
       '<div class="row2"><button type="button" class="btn soft" data-act="closeSheet">취소</button><button type="button" class="btn danger" data-act="doReset">모두 지우기</button></div>';
   }
   var chat = sh.type === 'ai';
-  return '<div class="overlay" data-act="overlay"><form class="sheet' + (chat ? ' chat' : '') + '" data-form="sheet" role="dialog" aria-modal="true" aria-label="' + (chat ? 'AI에게 말하기' : '편집') + '"><div class="grab"></div>' + body + '</form></div>';
+  return '<div class="overlay" data-act="overlay"><form class="sheet' + (chat ? ' chat' : '') + '" data-form="sheet" role="dialog" aria-modal="true" aria-label="' + (chat ? '길동무에게 말하기' : '편집') + '"><div class="grab"></div>' + body + '</form></div>';
 }
 function sheetButtons(canDelete) {
   return '<p id="sheet-err" role="alert" style="margin:0;font-size:13px;color:#A32D2D"></p><div style="display:flex;gap:8px">' + (canDelete ? '<button type="button" class="btn danger" data-act="sheetDelete">삭제</button>' : '') + '<button type="button" class="btn soft" data-act="closeSheet" style="flex:1">취소</button><button type="submit" class="btn" style="flex:1">저장</button></div>';
