@@ -21,15 +21,15 @@
 --ink:#16181D;--ink2:#3A3F4A;--muted:#5F6673;--line:#E9EAEE;--line2:#F0F1F4;--bg:#F4F5F7;
 --shadow:0 1px 2px rgba(22,24,29,.04),0 6px 16px rgba(22,24,29,.06)}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg)}
+html,body{margin:0;min-height:100%;background:var(--bg)}
 body{font-family:'Noto Sans KR',Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font-family:inherit;color:inherit}
 button{cursor:pointer}
 a{color:inherit}
 .num{font-family:Inter,'Noto Sans KR',sans-serif}
-.shell{max-width:480px;margin:0 auto;height:100vh;height:100dvh;position:relative;overflow:hidden;background:var(--bg)}
+.shell{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative;background:var(--bg)}
 .layer{display:contents}
-.main{position:absolute;inset:0;overflow-y:auto;overscroll-behavior-y:contain;padding:calc(env(safe-area-inset-top) + 22px) 18px calc(env(safe-area-inset-bottom) + 116px);display:flex;flex-direction:column;gap:16px}
+.main{position:relative;min-height:100vh;min-height:100dvh;padding:calc(env(safe-area-inset-top) + 22px) 18px calc(env(safe-area-inset-bottom) + 116px);display:flex;flex-direction:column;gap:16px}
 .main>*{flex-shrink:0}
 .card{background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:24px}
 .head{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -89,11 +89,11 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .done{color:#8A909B;text-decoration:line-through}
 .x{width:40px;height:40px;border:0;background:transparent;border-radius:20px;color:#9AA0AA;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
 .empty{padding:18px;font-size:14px;color:var(--muted);text-align:center}
-.nav{position:absolute;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));height:64px;border-radius:32px;background:#fff;border:1px solid var(--line);box-shadow:0 2px 4px rgba(22,24,29,.05),0 10px 24px rgba(22,24,29,.10);display:flex;align-items:center;padding:0 6px;z-index:5}
+.nav{position:fixed;left:max(14px,calc(50% - 226px));right:max(14px,calc(50% - 226px));z-index:5;bottom:calc(14px + env(safe-area-inset-bottom));height:64px;border-radius:32px;background:#fff;border:1px solid var(--line);box-shadow:0 2px 4px rgba(22,24,29,.05),0 10px 24px rgba(22,24,29,.10);display:flex;align-items:center;padding:0 6px;z-index:5}
 .nav button{flex:1;height:52px;border-radius:26px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:11px;font-weight:500;padding:0}
 .nav button.on{background:var(--accent);color:var(--on);font-weight:700}
-.fab{position:absolute;right:22px;bottom:calc(94px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:28px;border:0;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 8px rgba(22,24,29,.10),0 10px 22px rgba(22,24,29,.14);z-index:4}
-.overlay{position:absolute;inset:0;background:rgba(22,24,29,.35);display:flex;align-items:flex-end;z-index:10}
+.fab{position:fixed;z-index:5;right:max(22px,calc(50% - 218px));bottom:calc(94px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:28px;border:0;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 8px rgba(22,24,29,.10),0 10px 22px rgba(22,24,29,.14);z-index:4}
+.overlay{position:fixed;inset:0;background:rgba(22,24,29,.35);display:flex;align-items:flex-end;z-index:10}
 .sheet{background:#fff;width:100%;max-height:90%;overflow-y:auto;border-radius:28px 28px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
 .grab{width:40px;height:5px;border-radius:3px;background:#DADDE1;margin:2px auto 0}
 .sheet h3{margin:0;font-size:18px;font-weight:700}
@@ -104,7 +104,7 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .daytabs button.on{background:var(--accent);color:var(--on)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:2px}
 .cal-cell{height:50px;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:20px;z-index:20;white-space:nowrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:20px;z-index:20;white-space:nowrap}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 :focus-visible{outline:2px solid var(--deep);outline-offset:2px}
 </style>
@@ -884,6 +884,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-b</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1181,7 +1182,7 @@ var lastTab = null;
 function render() {
   var app = document.getElementById('app');
   var main = app.querySelector('.main');
-  var keepScroll = main && lastTab === ui.tab ? main.scrollTop : 0;
+  var keepScroll = main && lastTab === ui.tab ? (window.scrollY || document.documentElement.scrollTop || 0) : 0;
   var active = document.activeElement, activeBind = active && active.getAttribute && active.getAttribute('data-bind'), selStart = null;
   try { if (activeBind && active.selectionStart != null) selStart = active.selectionStart; } catch (e) {}
   var aiTa = document.getElementById('ai-text'), aiFocus = false, aiBox = document.getElementById('ai-msgs'), aiScroll = aiBox ? aiBox.scrollTop : null, aiAtEnd = aiBox ? aiBox.scrollTop + aiBox.clientHeight >= aiBox.scrollHeight - 8 : true;
@@ -1209,7 +1210,8 @@ function render() {
   if (!m2 || !layer) { app.innerHTML = '<main class="main"></main><div class="layer"></div>'; m2 = app.querySelector('.main'); layer = app.querySelector('.layer'); }
   m2.innerHTML = body;
   layer.innerHTML = nav + sheetHtml() + (ui.toast ? '<div class="toast" role="status">' + esc(ui.toast) + '</div>' : '');
-  m2.scrollTop = keepScroll;
+  try { window.scrollTo(0, keepScroll); } catch (e) {}
+  document.documentElement.style.overflow = ui.sheet ? 'hidden' : ''; document.body.style.overflow = ui.sheet ? 'hidden' : '';
   lastTab = ui.tab;
   fitVV();
   var aiBox2 = document.getElementById('ai-msgs'); if (aiBox2 && aiScroll != null) aiBox2.scrollTop = aiAtEnd ? aiBox2.scrollHeight : aiScroll;
