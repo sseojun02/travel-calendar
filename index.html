@@ -540,7 +540,7 @@ function dday() {
 /* ---------- storage ---------- */
 function lsGet() { try { var v = localStorage.getItem(LS_KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
 function lsSet() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
-function commit(msg) { lsSet(); if (msg) toast(msg); render(); scheduleSave(); }
+function commit(msg) { lsSet(); if (msg) toast(msg); render(); scheduleSave(); scheduleMoves(); }
 function scheduleSave() { if (!ref) return; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
 function flush() {
   if (!ref || !S) return;
@@ -579,7 +579,7 @@ function connect() {
         loaded = true;
         if (remote) { S = clone(remote); lastSaved = JSON.stringify(S); lsSet(); }
         else if (S) scheduleSave();
-        render(); return;
+        render(); scheduleMoves(2000); return;
       }
       if (remote) {
         var j = JSON.stringify(remote);
@@ -696,7 +696,7 @@ function screenTimeline() {
     return '<button role="tab" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '" data-act="day" data-date="' + d.date + '"><span class="num" style="font-size:13px;font-weight:700">' + d.label + '</span><span style="font-size:11px;font-weight:500">' + mdDow(d.date) + '</span></button>';
   }).join('') + '</div>';
   var moveCount = list.filter(function (s) { return s.move; }).length;
-  h += '<div class="chips"><span class="chip" style="cursor:default">장소 ' + list.length + '곳</span>' + (list[0] && list[0].start ? '<span class="chip num" style="cursor:default">첫 일정 ' + list[0].start + '</span>' : '') + (moveCount && S.settings.move ? '<span class="chip" style="cursor:default">이동 ' + moveCount + '번</span>' : '') + '</div>';
+  h += '<div class="chips"><span class="chip" style="cursor:default">장소 ' + list.length + '곳</span>' + (list[0] && list[0].start ? '<span class="chip num" style="cursor:default">첫 일정 ' + list[0].start + '</span>' : '') + (moveCount && S.settings.move ? '<span class="chip" style="cursor:default">이동 ' + moveCount + '번</span>' : '') + (list.length > 1 && S.settings.move ? '<button class="chip" data-act="recalcMoves" data-date="' + date + '">' + (moveBusy ? '계산 중…' : '이동 시간 다시 계산') + '</button>' : '') + '</div>';
   if (todos.length) {
     h += '<div style="border-radius:20px;padding:10px 16px 4px;background:var(--soft);border:1px solid var(--tint)"><div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2)">' + svg(I.todo, 14, 2.2) + '이 날 할 일</div>' +
       todos.map(function (x) { return '<div style="display:flex;align-items:center;gap:10px;min-height:46px">' + checkBtn(x.done, 'toggleTodo', x.id, x.text) + '<span style="font-size:14px" class="' + (x.done ? 'done' : '') + '">' + esc(x.text) + '</span></div>'; }).join('') + '</div>';
@@ -709,9 +709,10 @@ function screenTimeline() {
   h += '<div style="display:flex;flex-direction:column">';
   list.forEach(function (s, i) {
     if (showNow && !nowDone && toMin(s.start) != null && toMin(s.start) > nowM) { h += nowLine(lc.hm); nowDone = true; }
-    if (s.move && S.settings.move && i > 0) {
+    if (S.settings.move && i > 0 && (s.move || placeOf(list[i - 1]) !== placeOf(s))) {
+      var mv = s.move || (moveBusy ? '이동 시간 계산 중…' : '길찾기');
       h += '<div style="display:flex;gap:10px;align-items:center;height:44px"><div style="width:48px"></div><div style="width:14px;align-self:stretch;display:flex;justify-content:center"><div style="border-left:2px dashed #CDD1D8"></div></div>' +
-        '<span style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:14px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2)">' + svg(I.train, 14) + esc(s.move) + '</span></div>';
+        '<a href="' + dirUrl(list[i - 1], s) + '" target="_blank" rel="noopener" aria-label="' + esc(list[i - 1].title) + '에서 ' + esc(s.title) + '까지 구글 지도 길찾기" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:#fff;border:1px solid var(--line);font-size:12px;font-weight:500;color:var(--ink2);text-decoration:none">' + svg(s.move && /도보/.test(s.move) ? I.pin : I.train, 14) + esc(mv) + (s.moveAuto && s.move ? '<span style="font-size:10px;color:var(--muted)">AI</span>' : '') + svg(I.next, 12, 2.2) + '</a></div>';
     }
     var dur = (toMin(s.end) != null && toMin(s.start) != null) ? toMin(s.end) - toMin(s.start) : 0;
     var sight = s.cat === 'sight';
@@ -884,7 +885,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-b</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-c</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -998,9 +999,8 @@ function aiPrompt(text) {
     '사용자: ' + text
   ].filter(Boolean).join('\n');
 }
-function aiCall(text) {
+function aiRaw(prompt) {
   return aiLoad().then(function (x) {
-    var prompt = aiPrompt(text);
     function attempt(i) {
       var model = x.m.getGenerativeModel(x.ai, {model: AI_MODELS[i], generationConfig: {responseMimeType: 'application/json', temperature: 0.2}});
       var timer, timeout = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('timeout')); }, 25000); });
@@ -1015,11 +1015,65 @@ function aiCall(text) {
   }).then(function (raw) {
     var txt = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
     var a = txt.indexOf('{'), b = txt.lastIndexOf('}');
-    var o = JSON.parse(a >= 0 ? txt.slice(a, b + 1) : txt);
+    return JSON.parse(a >= 0 ? txt.slice(a, b + 1) : txt);
+  });
+}
+function aiCall(text) {
+  return aiRaw(aiPrompt(text)).then(function (o) {
     var acts = Array.isArray(o.actions) ? o.actions.filter(function (x) { return x && /^(stay|stop|todo|booking|spend|stop_edit|delete)$/.test(x.type); }).slice(0, 20) : [];
     acts.forEach(function (x) { x.on = true; });
     return {reply: String(o.reply || ''), actions: acts};
   });
+}
+/* ---------- 일정 사이 이동 시간 자동 계산 (AI 추정 + 구글 지도 길찾기) ---------- */
+function placeOf(s) { var c = legFor(s.date).city || ''; return (s.q || [s.title.replace(/^(체크인|체크아웃) · /, ''), s.place].filter(Boolean).join(' ')) + (s.q ? '' : (c ? ', ' + c : '')); }
+function dirUrl(a, b) { return 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(placeOf(a)) + '&destination=' + encodeURIComponent(placeOf(b)) + '&travelmode=transit'; }
+var moveBusy = false, moveTimer = null, moveFailAt = 0;
+function movePairs() {
+  var out = [], days = {};
+  S.stops.forEach(function (s) { days[s.date] = 1; });
+  Object.keys(days).forEach(function (d) {
+    var list = stopsOn(d);
+    for (var i = 1; i < list.length; i++) {
+      var a = list[i - 1], b = list[i], key = placeOf(a) + ' → ' + placeOf(b);
+      if (b.move && !b.moveAuto) continue;                 // 직접 적은 건 그대로
+      if (b.moveAuto && b.moveKey === key) continue;      // 이미 계산됨
+      if (placeOf(a) === placeOf(b)) { if (b.moveAuto || !b.move) { b.move = ''; b.moveAuto = true; b.moveKey = key; } continue; }
+      out.push({stop: b, from: placeOf(a), to: placeOf(b), key: key, city: legFor(d).city || '', country: legFor(d).country || ''});
+    }
+  });
+  return out.slice(0, 15);
+}
+function scheduleMoves(delay) {
+  if (!S || S.settings.autoMove === false) return;
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(runMoves, delay == null ? 1500 : delay);
+}
+function runMoves() {
+  if (!S || moveBusy || S.settings.autoMove === false) return;
+  if (Date.now() - moveFailAt < 60000) return;
+  var pairs = movePairs();
+  if (!pairs.length) return;
+  moveBusy = true; render();
+  var prompt = [
+    '너는 여행 동선 도우미야. 아래 각 구간(출발 → 도착)을 현지에서 이동할 때 가장 현실적인 방법과 대략적인 시간을 추정해.',
+    '규칙: 걸어서 15분 이내면 도보. 아니면 그 도시에서 여행자가 흔히 쓰는 대중교통(지하철/메트로/버스/트램/기차/페리), 대중교통이 불편하면 택시. 노선을 확실히 알면 line에 짧게(예: "메트로 1호선", "7 트레인"), 모르면 빈 문자열. 분은 정수.',
+    '반드시 JSON 하나만: {"moves":[{"i":번호,"mode":"도보|지하철|버스|트램|기차|페리|택시","line":"","min":숫자}]}',
+    '구간:',
+    pairs.map(function (p, i) { return i + '. [' + p.country + ' ' + p.city + '] ' + p.from + ' → ' + p.to; }).join('\n')
+  ].join('\n');
+  aiRaw(prompt).then(function (o) {
+    var arr = Array.isArray(o.moves) ? o.moves : [];
+    arr.forEach(function (m) {
+      var p = pairs[+m.i]; if (!p) return;
+      var min = Math.round(Number(m.min)); if (!(min > 0 && min < 600)) return;
+      var mode = String(m.mode || '').slice(0, 6), line = String(m.line || '').slice(0, 20).trim();
+      if (p.stop.move && !p.stop.moveAuto) return;
+      p.stop.move = (line && mode !== '도보' ? line : mode) + ' · 약 ' + min + '분';
+      p.stop.moveAuto = true; p.stop.moveKey = p.key;
+    });
+    moveBusy = false; lsSet(); render(); scheduleSave();
+  }, function (e) { try { console.warn('[move]', e); } catch (x) {} moveBusy = false; moveFailAt = Date.now(); render(); });
 }
 function aiErrMsg(e) {
   var m = String(e && (e.code || '') + ' ' + (e.message || e));
@@ -1134,7 +1188,7 @@ function sheetHtml() {
       '<div><span class="flabel">종류</span><div class="chips" data-group="cat">' + CATS.map(function (c) { return '<button type="button" class="chip' + (s.cat === c[0] ? ' on' : '') + '" data-act="pickChip" data-v="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div><input type="hidden" name="cat" value="' + esc(s.cat) + '"></div>' +
       '<div><label class="flabel" for="s-place">위치 메모</label><input id="s-place" name="place" class="field" value="' + esc(s.place) + '" placeholder="7구 · 5층 시계창"></div>' +
       '<div><label class="flabel" for="s-q">구글 지도 검색어 (비우면 이름으로 찾아요)</label><input id="s-q" name="q" class="field" value="' + esc(s.q) + '" placeholder="Musée d\'Orsay, Paris"></div>' +
-      '<div class="row2"><div><label class="flabel" for="s-booked">예약 정보</label><input id="s-booked" name="booked" class="field" value="' + esc(s.booked) + '" placeholder="11:00 입장"></div><div><label class="flabel" for="s-move">여기까지 이동</label><input id="s-move" name="move" class="field" value="' + esc(s.move) + '" placeholder="메트로 · 15분"></div></div>' +
+      '<div class="row2"><div><label class="flabel" for="s-booked">예약 정보</label><input id="s-booked" name="booked" class="field" value="' + esc(s.booked) + '" placeholder="11:00 입장"></div><div><label class="flabel" for="s-move">여기까지 이동</label><input id="s-move" name="move" class="field" value="' + esc(s.move) + '" placeholder="비워두면 자동 계산"></div></div>' +
       '<div><label class="flabel" for="s-note">메모</label><textarea id="s-note" name="note" class="field" rows="2">' + esc(s.note) + '</textarea></div>' +
       sheetButtons(!!sh.id);
   } else if (sh.type === 'todo') {
@@ -1251,6 +1305,7 @@ var A = {
   theme: function (el) { S.settings.theme = el.dataset.k; commit(); },
   toggleSet: function (el) { S.settings[el.dataset.k] = !S.settings[el.dataset.k]; commit(); },
   sheet: function (el) { if (el.dataset.type === 'ai') { ui.ai.err = ''; } ui.sheet = {type: el.dataset.type, id: el.dataset.id || null, date: el.dataset.date || null}; render(); if (el.dataset.type === 'ai') { aiAfterRender(true); return; } var f = document.querySelector('.sheet input:not([type=hidden]), .sheet select'); if (f && !el.dataset.id) try { f.focus(); } catch (e) {} },
+  recalcMoves: function (el) { stopsOn(el.dataset.date).forEach(function (x) { if (x.moveAuto || !x.move) { x.moveKey = ''; x.moveAuto = true; x.move = ''; } }); moveFailAt = 0; lsSet(); render(); scheduleMoves(0); },
   closeSheet: function () { ui.sheet = null; render(); },
   aiToggle: function (el) { var m = ui.ai.msgs[+el.dataset.m], x = m && m.actions[+el.dataset.i]; if (x && !m.applied) { var box = document.getElementById('ai-msgs'), st = box ? box.scrollTop : 0; x.on = !x.on; render(); box = document.getElementById('ai-msgs'); if (box) box.scrollTop = st; } },
   aiApply: function (el) { var m = ui.ai.msgs[+el.dataset.m]; if (!m || m.applied) return; var n = aiApply(m); m.applied = n || -1; if (n <= 0) m.applied = 0; commit(n ? n + '개를 반영했어요' : '반영할 항목이 없었어요'); },
@@ -1308,7 +1363,7 @@ document.addEventListener('submit', function (e) {
       if (!v.title) { showErr('sheet-err', '장소나 할 것을 적어 주세요'); return; }
       if (v.start && v.end && v.end < v.start) { showErr('sheet-err', '끝나는 시간이 시작보다 빨라요'); return; }
       var rec = {date: v.date, start: v.start, end: v.end, title: v.title, place: v.place, q: v.q, cat: v.cat || 'sight', booked: v.booked, move: v.move, note: v.note};
-      if (sh.id) { var s = S.stops.filter(function (x) { return x.id === sh.id; })[0]; if (s) Object.assign(s, rec); }
+      if (sh.id) { var s = S.stops.filter(function (x) { return x.id === sh.id; })[0]; if (s) { if (!v.move) { rec.moveAuto = false; rec.moveKey = ''; } else if (v.move !== s.move) { rec.moveAuto = false; } Object.assign(s, rec); } }
       else S.stops.push(Object.assign({id: nid()}, rec));
       ui.day = v.date;
     } else if (sh.type === 'todo') {
@@ -1384,6 +1439,7 @@ S = lsGet();
 if (S && !S.trip) S = null;
 render();
 connect();
+setTimeout(function () { scheduleMoves(0); }, 4000);
 })();
 </script>
 </body>
