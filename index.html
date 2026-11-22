@@ -394,8 +394,8 @@ var TZS = [['Europe/Paris','파리'],['Europe/London','런던'],['Europe/Rome','
   ['America/New_York','뉴욕'],['America/Chicago','시카고'],['America/Los_Angeles','LA'],['Pacific/Honolulu','하와이'],
   ['Asia/Tokyo','도쿄'],['Asia/Shanghai','상하이'],['Asia/Taipei','타이베이'],['Asia/Hong_Kong','홍콩'],['Asia/Singapore','싱가포르'],
   ['Asia/Bangkok','방콕'],['Asia/Ho_Chi_Minh','호찌민'],['Australia/Sydney','시드니'],['Asia/Seoul','서울']];
-var CATS = [['sight','관광'],['food','식사'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
-var SPEND_CATS = ['식사','교통','관광','쇼핑','숙소','기타'];
+var CATS = [['sight','관광'],['food','식사'],['cafe','카페'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
+var SPEND_CATS = ['식사','카페','교통','관광','쇼핑','숙소','기타'];
 var DOW = ['일','월','화','수','목','금','토'];
 var LS_KEY = 'travel-calendar-v1';
 
@@ -1081,7 +1081,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-d</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-e</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1181,7 +1181,7 @@ function aiPrompt(text) {
     '{"reply":"한국어 한두 문장(무엇을 할지 요약, 친근한 존댓말)","actions":[...]}',
     'actions 항목 종류:',
     '- {"type":"stay","leg":"지역 id(체크인 날짜가 속한 지역)","name":"숙소 이름","address":"구글 지도에서 찾을 주소 또는 \'숙소이름, 도시/동네\'","inDate":"체크인 YYYY-MM-DD","checkin":"HH:MM","outDate":"체크아웃 YYYY-MM-DD","checkout":"HH:MM"}  ← 숙소는 지역마다 하나. 체크인·체크아웃 일정은 앱이 자동으로 만드니 stop으로 따로 넣지 마',
-    '- {"type":"stop","date":"YYYY-MM-DD","start":"HH:MM","end":"HH:MM","title":"장소·할 것(한국어)","place":"짧은 위치 메모","q":"구글 지도 검색어(현지/영문 이름, 도시 포함)","cat":"sight|food|shop|stay|etc","booked":"예약 정보","note":"메모"}',
+    '- {"type":"stop","date":"YYYY-MM-DD","start":"HH:MM","end":"HH:MM","title":"장소·할 것(한국어)","place":"짧은 위치 메모","q":"구글 지도 검색어(현지/영문 이름, 도시 포함)","cat":"sight|food|cafe|shop|stay|etc (커피·디저트 가게는 cafe)","booked":"예약 정보","note":"메모"}',
     '- {"type":"stop_edit","id":"기존일정의 id","date":"...","start":"...","end":"...","title":"...","note":"..."}  ← 바꿀 필드만 넣어',
     '- {"type":"delete","target":"stop|todo|booking","id":"기존 항목 id"}',
     '- {"type":"todo","text":"할 일","date":"YYYY-MM-DD 또는 빈 문자열"}',
@@ -1304,7 +1304,7 @@ function aiApply(msg) {
     if (!x.on) return;
     if (x.type === 'stay') { var sl4 = aiStayLeg(x); sl4.stay = {name: str(x.name), address: str(x.address) || str(x.name), inDate: okD(x.inDate) || sl4.start, checkin: okT(x.checkin), outDate: okD(x.outDate) || sl4.end, checkout: okT(x.checkout)}; syncStayStops(sl4); n++; }
     else if (x.type === 'stop' && str(x.title)) {
-      var d = okD(x.date) || ui.day || S.trip.start, cat = /^(sight|food|shop|stay|etc)$/.test(x.cat) ? x.cat : 'sight';
+      var d = okD(x.date) || ui.day || S.trip.start, cat = /^(sight|food|cafe|shop|stay|etc)$/.test(x.cat) ? x.cat : 'sight';
       S.stops.push({id: nid(), date: d, start: okT(x.start), end: okT(x.end), title: str(x.title), place: str(x.place), q: str(x.q), cat: cat, booked: str(x.booked), move: '', note: str(x.note)});
       lastDay = d; n++;
     }
