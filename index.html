@@ -835,16 +835,7 @@ function ttGrid(list, date, lc) {
       (hgt >= 60 ? '<a class="pin" href="' + mapUrl(s.q || (s.title + ' ' + (s.place || '') + ' ' + (legFor(s.date).city || ''))) + '" target="_blank" rel="noopener" aria-label="' + esc(s.title) + ' 구글 지도에서 열기"' + (s.color ? ' style="background:rgba(255,255,255,.6);color:' + hl[3] + '"' : '') + '>' + svg(I.pin, 16) + '</a>' : '') +
       (s.end ? '<span class="grip" aria-hidden="true"' + (ink ? ' style="background:rgba(255,255,255,.35)"' : '') + '></span>' : '') + '</div>';
   });
-  // 이동 시간 (카드 사이)
-  if (S.settings.move) for (var i = 1; i < timed.length; i++) {
-    var pv = timed[i - 1], cu = timed[i];
-    if (isTravelStop(cu) || !cu.move) continue;
-    var sh = gapShort(pv, cu), gapTop = y(Math.max(52 / TT_PPM + toMin(pv.start), stopEnd(pv))), nextTop = y(toMin(cu.start)), room = nextTop - gapTop;
-    var top = room >= 32 ? gapTop + Math.round((room - 26) / 2) : nextTop - 13, tight = room < 32;
-    var inner = svg(/도보/.test(cu.move) ? I.pin : I.train, 13) + esc(cu.move) + (cu.moveAuto && !sh ? '<span style="display:inline-flex;color:var(--deep);opacity:.75">' + svg(I.spark, 10, 2) + '</span>' : '') + (sh ? ' · ' + sh + '분 부족' : '');
-    if (sh) out += '<button class="tt-mv short' + (tight ? ' tight' : '') + '" style="top:' + top + 'px" data-act="sheet" data-type="gap" data-id="' + cu.id + '" aria-label="이동 시간 ' + sh + '분 부족, 해결 방법 고르기">' + inner + '</button>';
-    else out += '<a class="tt-mv' + (tight ? ' tight' : '') + '" style="top:' + top + 'px" href="' + dirUrl(pv, cu) + '" target="_blank" rel="noopener" aria-label="' + esc(pv.title) + '에서 ' + esc(cu.title) + '까지 구글 지도 길찾기">' + inner + svg(I.next, 11, 2.2) + '</a>';
-  }
+  // 시간표에는 이동 시간을 표시하지 않아요 (목록 보기에서만 보여요)
   if (lc.date === date) { var nm = toMin(lc.hm); if (nm >= base && nm <= h1 * 60) out += '<div class="tt-now" style="top:' + y(nm) + 'px"></div>'; }
   out += '</div>';
   if (untimed.length) out += '<div style="display:flex;flex-direction:column;gap:8px"><span class="flabel">시간 미정</span>' + untimed.map(function (s) { return '<button class="card" data-act="sheet" data-type="stop" data-id="' + s.id + '" style="padding:12px 14px;text-align:left;font-size:14px;font-weight:700;border-radius:16px">' + esc(s.title) + '</button>'; }).join('') + '</div>';
@@ -1082,7 +1073,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1121-i</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-a</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
