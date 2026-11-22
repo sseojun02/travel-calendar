@@ -66,6 +66,7 @@ h2{margin:0;font-size:17px;font-weight:700}
 .tt-hour span{position:absolute;left:0;top:-8px;width:40px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);background:var(--bg);padding-right:4px}
 .tt-rail{position:absolute;left:58px;top:0;bottom:0;width:2px;background:#E1E3E8}
 .tt-dot{position:absolute;left:53px;width:12px;height:12px;border-radius:6px;z-index:1}
+.tt-b *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tt-b{position:absolute;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:10px 8px 10px 14px;overflow:hidden;display:flex;gap:6px;text-align:left;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;cursor:pointer;box-sizing:border-box}
 .tt-b.drag{z-index:5;box-shadow:0 10px 28px rgba(22,24,29,.2);transform:scale(1.02);transition:transform .12s}
 .tt-b .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -867,34 +868,35 @@ function fixGap(id) {
   }
   return '';
 }
-/* 꾹 눌러서 옮기기 / 아래쪽 꾹 눌러서 길이 조절 */
+/* 꾹 눌러서 옮기기 / 아래쪽 꾹 눌러서 길이 조절
+   - 폰(터치): touch 이벤트로 직접 처리해서 사파리가 스크롤로 가로채지 않게 해요
+   - 컴퓨터(마우스): pointer 이벤트로 처리해요 */
 var ttDrag = null, ttSuppressClick = false;
 function ttMinFromY(dy) { return Math.round(dy / TT_PPM / 5) * 5; }
-document.addEventListener('pointerdown', function (e) {
-  var b = e.target.closest && e.target.closest('.tt-b'); if (!b || e.target.closest('a')) return;
-  var r = b.getBoundingClientRect(), s = S.stops.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!s) return;
-  var mode = (s.end && e.clientY > r.bottom - 18) ? 'resize' : 'move';
-  if (ttDrag) { clearTimeout(ttDrag.timer); var was = ttDrag.active; ttDrag = null; if (was) { render(); return; } }
-  var d = {pid: e.pointerId, el: b, s: s, mode: mode, y0: e.clientY, x0: e.clientX, a: toMin(s.start), b: stopEnd(s), top0: parseFloat(b.style.top), h0: parseFloat(b.style.height), active: false, delta: 0};
-  d.timer = setTimeout(function () { d.active = true; b.classList.add('drag'); try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} }, 380);
+function ttStart(b, x, y, kind) {
+  if (ttDrag) ttCancel();
+  var s = S.stops.filter(function (q) { return q.id === b.dataset.id; })[0]; if (!s) return;
+  var r = b.getBoundingClientRect();
+  var d = {kind: kind, el: b, s: s, mode: (s.end && y > r.bottom - 22) ? 'resize' : 'move', y0: y, x0: x, a: toMin(s.start), b: stopEnd(s), top0: parseFloat(b.style.top), h0: parseFloat(b.style.height), active: false, delta: 0};
+  d.timer = setTimeout(function () { if (ttDrag !== d) return; d.active = true; b.classList.add('drag'); try { navigator.vibrate && navigator.vibrate(12); } catch (q) {} }, 320);
   ttDrag = d;
-});
-document.addEventListener('pointermove', function (e) {
-  var d = ttDrag; if (!d || (d.pid != null && e.pointerId != null && e.pointerId !== d.pid)) return;
-  if (!d.active) { if (Math.abs(e.clientY - d.y0) > 8 || Math.abs(e.clientX - d.x0) > 8) { clearTimeout(d.timer); ttDrag = null; } return; }
-  var dm = ttMinFromY(e.clientY - d.y0);
+}
+function ttMove(x, y) {
+  var d = ttDrag; if (!d) return false;
+  if (!d.active) { if (Math.abs(y - d.y0) > 10 || Math.abs(x - d.x0) > 10) { clearTimeout(d.timer); ttDrag = null; } return false; }
+  var dm = ttMinFromY(y - d.y0);
   if (d.mode === 'move') { dm = Math.max(-d.a, Math.min(24 * 60 - 5 - d.b, dm)); d.el.style.top = (d.top0 + dm * TT_PPM) + 'px'; }
-  else { dm = Math.max(10 - (d.b - d.a), Math.min(24 * 60 - 1 - d.b, dm)); d.el.style.height = Math.max(30, d.h0 + dm * TT_PPM) + 'px'; }
+  else { dm = Math.max(10 - (d.b - d.a), Math.min(24 * 60 - 1 - d.b, dm)); d.el.style.height = Math.max(52, d.h0 + dm * TT_PPM) + 'px'; }
   d.delta = dm;
   var lab = d.el.querySelector('.tt-time'), na = d.mode === 'move' ? d.a + dm : d.a, nb = d.b + dm;
-  var txt = fromMin(na) + (d.s.end ? ' – ' + fromMin(nb) : '');
-  if (lab) lab.textContent = txt; else d.el.setAttribute('data-tip', txt);
-});
+  if (lab) lab.textContent = fromMin(na) + (d.s.end ? ' – ' + fromMin(nb) : '');
+  return true;
+}
 function ttEnd() {
   var d = ttDrag; ttDrag = null; if (!d) return;
   clearTimeout(d.timer);
   if (!d.active) return;
-  ttSuppressClick = true; setTimeout(function () { ttSuppressClick = false; }, 350);
+  ttSuppressClick = true; setTimeout(function () { ttSuppressClick = false; }, 400);
   d.el.classList.remove('drag');
   if (!d.delta) { render(); return; }
   if (d.mode === 'move') { d.s.start = fromMin(d.a + d.delta); if (d.s.end) d.s.end = fromMin(d.b + d.delta); }
@@ -902,17 +904,23 @@ function ttEnd() {
   ui.adjUndo = null;
   commit(d.s.title + ' · ' + d.s.start + (d.s.end ? '–' + d.s.end : ''));
 }
-document.addEventListener('pointerup', function (e) { if (ttDrag && ttDrag.pid != null && e.pointerId != null && e.pointerId !== ttDrag.pid) return; ttEnd(); });
-document.addEventListener('touchend', function () { if (ttDrag) setTimeout(function () { if (ttDrag) ttEnd(); }, 30); });
-document.addEventListener('touchcancel', function () { var d = ttDrag; if (d) { clearTimeout(d.timer); ttDrag = null; if (d.active) render(); } });
-window.addEventListener('blur', function () { var d = ttDrag; if (d) { clearTimeout(d.timer); ttDrag = null; if (d.active) render(); } });
-document.addEventListener('visibilitychange', function () { var d = ttDrag; if (d) { clearTimeout(d.timer); ttDrag = null; if (d.active) render(); } });
-window.addEventListener('scroll', function () { var d = ttDrag; if (d && !d.active) { clearTimeout(d.timer); ttDrag = null; } }, {passive: true});
-document.addEventListener('pointercancel', function () { var d = ttDrag; if (d && d.active) { d.el.classList.remove('drag'); render(); } if (d) clearTimeout(d.timer); ttDrag = null; });
-document.addEventListener('touchmove', function (e) { if (ttDrag && ttDrag.active) e.preventDefault(); }, {passive: false});
+function ttCancel() { var d = ttDrag; ttDrag = null; if (!d) return; clearTimeout(d.timer); if (d.active) render(); }
+function ttCard(e) { var b = e.target.closest && e.target.closest('.tt-b'); return b && !e.target.closest('a') ? b : null; }
+// 터치 (아이폰·안드로이드)
+document.addEventListener('touchstart', function (e) { var b = ttCard(e); if (!b || e.touches.length > 1) { if (ttDrag) ttCancel(); return; } var t = e.touches[0]; ttStart(b, t.clientX, t.clientY, 'touch'); }, {passive: true});
+document.addEventListener('touchmove', function (e) { if (!ttDrag || ttDrag.kind !== 'touch') return; var t = e.touches[0]; if (ttMove(t.clientX, t.clientY) || ttDrag && ttDrag.active) e.preventDefault(); }, {passive: false});
+document.addEventListener('touchend', function () { if (ttDrag && ttDrag.kind === 'touch') ttEnd(); });
+document.addEventListener('touchcancel', function () { if (ttDrag && ttDrag.kind === 'touch') ttCancel(); });
+// 마우스 (컴퓨터)
+document.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') return; var b = ttCard(e); if (b) ttStart(b, e.clientX, e.clientY, 'mouse'); });
+document.addEventListener('pointermove', function (e) { if (ttDrag && ttDrag.kind === 'mouse') ttMove(e.clientX, e.clientY); });
+document.addEventListener('pointerup', function (e) { if (ttDrag && ttDrag.kind === 'mouse') ttEnd(); });
+window.addEventListener('blur', ttCancel);
+document.addEventListener('visibilitychange', ttCancel);
 document.addEventListener('contextmenu', function (e) { if (e.target.closest && e.target.closest('.tt-b')) e.preventDefault(); });
+document.addEventListener('selectstart', function (e) { if (e.target.closest && e.target.closest('.tt-b')) e.preventDefault(); });
 document.addEventListener('click', function (e) {
-  var b = e.target.closest && e.target.closest('.tt-b'); if (!b || e.target.closest('a')) return;
+  var b = ttCard(e); if (!b) return;
   if (ttSuppressClick) { e.preventDefault(); e.stopPropagation(); return; }
   ui.sheet = {type: 'stop', id: b.dataset.id}; render();
 }, true);
@@ -1073,7 +1081,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-a</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-b</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
