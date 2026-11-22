@@ -1081,7 +1081,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-e</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-f</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1195,15 +1195,16 @@ function aiPrompt(text) {
     '사용자: ' + text
   ].filter(Boolean).join('\n');
 }
-function aiRaw(prompt) {
+function aiRaw(prompt, models, wait) {
+  var MS = models || AI_MODELS;
   return aiLoad().then(function (x) {
     function attempt(i) {
-      var model = x.m.getGenerativeModel(x.ai, {model: AI_MODELS[i], generationConfig: {responseMimeType: 'application/json', temperature: 0.2}});
-      var timer, timeout = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('timeout')); }, 25000); });
+      var model = x.m.getGenerativeModel(x.ai, {model: MS[i], generationConfig: {responseMimeType: 'application/json', temperature: 0.1}});
+      var timer, timeout = new Promise(function (_, rej) { timer = setTimeout(function () { rej(new Error('timeout')); }, wait || 25000); });
       return Promise.race([model.generateContent(prompt), timeout]).then(function (r) { clearTimeout(timer); return r.response.text(); }, function (e) {
         clearTimeout(timer);
         var msg = String(e && (e.message || e));
-        if (i + 1 < AI_MODELS.length && /not found|404|not supported|is not available|unsupported|timeout|503|overloaded|UNAVAILABLE/i.test(msg)) return attempt(i + 1);
+        if (i + 1 < MS.length && /not found|404|not supported|is not available|unsupported|timeout|503|overloaded|UNAVAILABLE|429|quota|RESOURCE/i.test(msg)) return attempt(i + 1);
         throw e;
       });
     }
@@ -1231,7 +1232,7 @@ function movePairs() {
   Object.keys(days).forEach(function (d) {
     var list = stopsOn(d);
     for (var i = 1; i < list.length; i++) {
-      var a = list[i - 1], b = list[i], key = placeOf(a) + ' → ' + placeOf(b);
+      var a = list[i - 1], b = list[i], key = 'v2|' + placeOf(a) + ' → ' + placeOf(b);
       if (b.move && !b.moveAuto) continue;                 // 직접 적은 건 그대로
       if (isTravelStop(b)) { if (b.moveAuto && b.move) { b.move = ''; b.moveKey = key; } continue; } // '이동' 일정 자체가 이동 시간
       if (b.moveAuto && b.moveKey === key) continue;      // 이미 계산됨
@@ -1254,22 +1255,24 @@ function runMoves() {
   moveBusy = true; render();
   var prompt = [
     '너는 여행 동선 도우미야. 아래 각 구간(출발 → 도착)을 현지에서 이동할 때 가장 현실적인 방법과 대략적인 시간을 추정해.',
-    '규칙: 걸어서 15분 이내면 도보. 아니면 그 도시에서 여행자가 흔히 쓰는 대중교통(지하철/메트로/버스/트램/기차/페리), 대중교통이 불편하면 택시. 노선을 확실히 알면 line에 짧게(예: "메트로 1호선", "7 트레인"), 모르면 빈 문자열. 분은 정수.',
+    '규칙: 걸어서 15분 이내면 도보. 아니면 그 도시에서 여행자가 흔히 쓰는 대중교통(지하철/메트로/버스/트램/기차/페리), 대중교통이 불편하면 택시. 노선을 확실히 알면 line에 짧게(예: "메트로 1호선", "7 트레인"), 모르면 빈 문자열.',
+    '시간(min)은 출발지 문 앞에서 도착지 문 앞까지 실제로 걸리는 시간이야: 역·정류장까지 걷기 + 평균 대기 + 탑승 + 환승 + 내려서 걷기를 모두 더해. 30·60·90처럼 뭉뚱그려 반올림하지 말고 계산한 그대로 정수 분으로 써(예: 23, 47, 82). 애매하면 짧게 말고 넉넉한 쪽으로.',
     '반드시 JSON 하나만: {"moves":[{"i":번호,"mode":"도보|지하철|버스|트램|기차|페리|택시","line":"","min":숫자}]}',
     '구간:',
     pairs.map(function (p, i) { return i + '. [' + p.country + ' ' + p.city + '] ' + p.from + ' → ' + p.to; }).join('\n')
   ].join('\n');
-  aiRaw(prompt).then(function (o) {
+  aiRaw(prompt, ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite'], 45000).then(function (o) {
     var arr = Array.isArray(o.moves) ? o.moves : [];
     arr.forEach(function (m) {
       var p = pairs[+m.i]; if (!p) return;
       var min = Math.round(Number(m.min)); if (!(min > 0 && min < 600)) return;
       var mode = String(m.mode || '').slice(0, 6), line = String(m.line || '').slice(0, 20).trim();
       if (p.stop.move && !p.stop.moveAuto) return;
-      p.stop.move = (line && mode !== '도보' ? line : mode) + ' · 약 ' + min + '분';
+      p.stop.move = (line && mode !== '도보' ? line : mode) + ' · 약 ' + (min >= 60 ? Math.floor(min / 60) + '시간' + (min % 60 ? ' ' + (min % 60) + '분' : '') : min + '분');
       p.stop.moveAuto = true; p.stop.moveKey = p.key;
     });
     moveBusy = false; lsSet(); render(); scheduleSave();
+    if (movePairs().length) scheduleMoves(3000);
   }, function (e) { try { console.warn('[move]', e); } catch (x) {} moveBusy = false; moveFailAt = Date.now(); render(); });
 }
 function aiErrMsg(e) {
