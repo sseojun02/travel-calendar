@@ -1081,7 +1081,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-b</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1122-c</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1470,7 +1470,15 @@ function render() {
   /* 아이폰 홈 화면 앱에서 스크롤이 멈추지 않도록 스크롤 영역(.main)은 한 번만 만들고 내용만 바꿔요 */
   var m2 = app.querySelector('.main'), layer = app.querySelector('.layer');
   if (!m2 || !layer) { app.innerHTML = '<main class="main"></main><div class="layer"></div>'; m2 = app.querySelector('.main'); layer = app.querySelector('.layer'); }
+  var hs = {}; ['.daytabs', '.legtabs'].forEach(function (q) { var el = m2.querySelector(q); if (el) hs[q] = el.scrollLeft; });
   m2.innerHTML = body;
+  /* 가로 탭(Day 1, Day 2…)이 다시 그려져도 보던 위치 그대로, 선택한 날짜는 화면 안에 */
+  Object.keys(hs).forEach(function (q) { var el = m2.querySelector(q); if (el) el.scrollLeft = hs[q]; });
+  ['.daytabs', '.legtabs'].forEach(function (q) {
+    var el = m2.querySelector(q), on = el && el.querySelector('button.on'); if (!on) return;
+    var l = on.offsetLeft, r = l + on.offsetWidth;
+    if (l < el.scrollLeft) el.scrollLeft = Math.max(0, l - 8); else if (r > el.scrollLeft + el.clientWidth) el.scrollLeft = r - el.clientWidth + 8;
+  });
   layer.innerHTML = nav + sheetHtml() + (ui.toast ? '<div class="toast" role="status">' + esc(ui.toast) + '</div>' : '');
   try { window.scrollTo(0, keepScroll); } catch (e) {}
   document.documentElement.style.overflow = ui.sheet ? 'hidden' : ''; document.body.style.overflow = ui.sheet ? 'hidden' : '';
