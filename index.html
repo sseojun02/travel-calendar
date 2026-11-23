@@ -130,9 +130,9 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .td{padding:4px 0;overflow:hidden}
 .td-g+.td-g{border-top:1px solid #E2E4E8}
 .td-gh{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;padding:14px 16px 8px;text-align:left}
-.td-gh b{font-size:15px;font-weight:700}
+.td-gh b{font-size:14px;font-weight:700;color:var(--deep)}
 .td-sub{font-size:12px;color:var(--muted)}
-.td-n{font-size:13px;color:var(--muted);font-weight:500}
+.td-n{font-size:12px;color:var(--deep);font-weight:600;background:var(--soft);border-radius:9px;padding:1px 7px;min-width:20px;text-align:center}
 .td-it{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-top:1px solid var(--line2);min-height:52px}
 .td-tb{flex:1;min-width:0;border:0;background:transparent;padding:4px 0;text-align:left;display:flex;flex-direction:column;gap:2px}
 .td-tx{font-size:15px;line-height:1.35;word-break:break-word}
@@ -568,7 +568,7 @@ function tripDays() {
 }
 /* ---------- 메모 ---------- */
 function memoComposer(id) {
-  return '<form class="card" data-form="memo" style="padding:12px 12px 12px 16px;display:flex;align-items:flex-end;gap:8px"><label for="' + id + '" class="sr-only" style="position:absolute;left:-9999px">빠른 메모</label><textarea id="' + id + '" name="text" rows="1" data-bind="memo.draft" placeholder="급하게 적을 것, 여기에 바로 메모" style="flex:1;border:0;background:transparent;resize:none;font-size:16px;line-height:1.45;min-height:26px;max-height:140px;padding:4px 0;font-family:inherit;outline:none" oninput="this.style.height=\'auto\';this.style.height=Math.min(140,this.scrollHeight)+\'px\'">' + esc(ui.memoDraft || '') + '</textarea><button type="submit" class="ai-send" aria-label="메모 저장" style="width:40px;height:40px">' + svg(I.check, 18, 2.6) + '</button></form>';
+  return '<form class="card" data-form="memo" style="padding:10px 10px 10px 20px;display:flex;align-items:flex-end;gap:8px"><label for="' + id + '" class="sr-only" style="position:absolute;left:-9999px">빠른 메모</label><textarea id="' + id + '" name="text" rows="1" data-bind="memo.draft" placeholder="급하게 적을 것, 여기에 바로 메모" style="flex:1;border:0;background:transparent;resize:none;font-size:16px;line-height:24px;height:40px;min-height:40px;max-height:140px;padding:8px 0;box-sizing:border-box;display:block;font-family:inherit;outline:none" oninput="this.style.height=\'40px\';this.style.height=Math.min(140,Math.max(40,this.scrollHeight))+\'px\'">' + esc(ui.memoDraft || '') + '</textarea><button type="submit" class="ai-send" aria-label="메모 저장" style="width:40px;height:40px">' + svg(I.check, 18, 2.6) + '</button></form>';
 }
 function memoTime(t) { if (!t) return ''; var d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 function memoRow(m) {
@@ -1130,7 +1130,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1123-b</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1123-c</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1544,7 +1544,7 @@ function render() {
   try { window.scrollTo(0, keepScroll); } catch (e) {}
   document.documentElement.style.overflow = ui.sheet ? 'hidden' : ''; document.body.style.overflow = ui.sheet ? 'hidden' : '';
   lastTab = ui.tab;
-  if (ui.tab === 'todo') fitBar();
+  if (ui.tab === 'todo') { fitBar(); var tc = document.querySelector('.tbar-chips'); if (tc && ui.tbarScroll) tc.scrollLeft = ui.tbarScroll; }
   fitVV();
   var aiBox2 = document.getElementById('ai-msgs'); if (aiBox2 && aiScroll != null) aiBox2.scrollTop = aiAtEnd ? aiBox2.scrollHeight : aiScroll;
   var aiTa2 = document.getElementById('ai-text'); if (aiTa2) { aiGrow(aiTa2); if (aiFocus) { try { aiTa2.focus({preventScroll: true}); var L = aiTa2.value.length; aiTa2.setSelectionRange(L, L); } catch (e) {} } }
@@ -1733,7 +1733,7 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229 && e.target && e.target.id === 'ai-text' && !/Mobi|iPhone|Android/i.test(navigator.userAgent)) { e.preventDefault(); aiSend(); }
 });
 
-document.addEventListener('scroll', function (e) { var t = e.target; if (!t || !t.classList) return; if (t.classList.contains('daytabs')) ui.dayScroll = t.scrollLeft; else if (t.classList.contains('legtabs')) ui.legScroll = t.scrollLeft; }, true);
+document.addEventListener('scroll', function (e) { var t = e.target; if (!t || !t.classList) return; if (t.classList.contains('daytabs')) ui.dayScroll = t.scrollLeft; else if (t.classList.contains('legtabs')) ui.legScroll = t.scrollLeft; else if (t.classList.contains('tbar-chips')) ui.tbarScroll = t.scrollLeft; }, true);
 /* 키보드가 올라와도 시트가 보이는 영역에 맞춰지게 */
 function fitVV() {
   var o = document.querySelector('.overlay'); if (!o) return;
