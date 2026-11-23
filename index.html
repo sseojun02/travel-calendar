@@ -127,6 +127,8 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .daytabs::-webkit-scrollbar{display:none}
 .daytabs button{min-width:76px;flex:1 0 auto;height:48px;border-radius:24px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink);padding:0 10px}
 .daytabs button.on{background:var(--accent);color:var(--on)}
+#upd{position:fixed;z-index:60;top:calc(env(safe-area-inset-top) + 10px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 18px;border:0;border-radius:22px;background:var(--ink);color:#fff;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(22,24,29,.25);white-space:nowrap;font-family:inherit}
+#upd b{height:32px;display:flex;align-items:center;padding:0 14px;border-radius:16px;background:#fff;color:var(--ink);font-size:13px}
 .td{padding:4px 0;overflow:hidden}
 .td-g+.td-g{border-top:1px solid #E2E4E8}
 .td-gh{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;padding:14px 16px 8px;text-align:left}
@@ -438,7 +440,23 @@ var TZS = [['Europe/Paris','파리'],['Europe/London','런던'],['Europe/Rome','
 var CATS = [['sight','관광'],['food','식사'],['cafe','카페'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
 var SPEND_CATS = ['식사','카페','교통','관광','쇼핑','숙소','기타'];
 var DOW = ['일','월','화','수','목','금','토'];
+var APP_VER = '1123-d';
 var LS_KEY = 'travel-calendar-v1';
+/* 새 버전 알림 */
+function checkUpdate() {
+  if (!/^https?:/.test(location.protocol) || document.getElementById('upd')) return;
+  fetch(location.pathname + '?nc=' + Date.now(), {cache: 'no-store'}).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+    var m = /var APP_VER = '([^']+)'/.exec(t || ''); if (!m || m[1] === APP_VER || document.getElementById('upd')) return;
+    var b = document.createElement('button'); b.id = 'upd'; b.type = 'button';
+    b.innerHTML = '<span>새 버전이 나왔어요</span><b>업데이트</b>';
+    b.onclick = function () { b.querySelector('b').textContent = '업데이트 중…'; location.replace(location.pathname + '?v=' + encodeURIComponent(m[1])); };
+    document.body.appendChild(b);
+  }).catch(function () {});
+}
+setTimeout(checkUpdate, 4000);
+setInterval(checkUpdate, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkUpdate(); });
+window.addEventListener('pageshow', function () { setTimeout(checkUpdate, 1500); });
 
 /* ---------- icons ---------- */
 function svg(d, s, w) { return '<svg width="' + (s || 20) + '" height="' + (s || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (w || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; }
@@ -1130,7 +1148,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1123-c</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 ' + APP_VER + '</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
