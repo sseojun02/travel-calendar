@@ -127,6 +127,30 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .daytabs::-webkit-scrollbar{display:none}
 .daytabs button{min-width:76px;flex:1 0 auto;height:48px;border-radius:24px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink);padding:0 10px}
 .daytabs button.on{background:var(--accent);color:var(--on)}
+.td{padding:4px 0;overflow:hidden}
+.td-g+.td-g{border-top:1px solid #E2E4E8}
+.td-gh{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;padding:14px 16px 8px;text-align:left}
+.td-gh b{font-size:15px;font-weight:700}
+.td-sub{font-size:12px;color:var(--muted)}
+.td-n{font-size:13px;color:var(--muted);font-weight:500}
+.td-it{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-top:1px solid var(--line2);min-height:52px}
+.td-tb{flex:1;min-width:0;border:0;background:transparent;padding:4px 0;text-align:left;display:flex;flex-direction:column;gap:2px}
+.td-tx{font-size:15px;line-height:1.35;word-break:break-word}
+.td-it.dn .td-tx{color:var(--muted);text-decoration:line-through}
+.td-tm{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:3px}
+.td-st{width:40px;height:40px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;color:#B9BEC7;flex-shrink:0;padding:0}
+.td-st.on{color:#BA7517}.td-st.on svg{fill:#F2C14E}
+.tbar{position:fixed;z-index:6;left:max(14px,calc(50% - 226px));right:max(14px,calc(50% - 226px));bottom:calc(88px + env(safe-area-inset-bottom));background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:0 2px 4px rgba(22,24,29,.06),0 10px 28px rgba(22,24,29,.12);padding:6px;margin:0;transition:bottom .15s}
+.tbar-chips{display:none;flex-wrap:nowrap;overflow-x:auto;padding:4px 4px 8px;gap:6px;scrollbar-width:none}
+.tbar-chips::-webkit-scrollbar{display:none}
+.tbar.open .tbar-chips{display:flex}
+.tbar-chips .chip{flex-shrink:0}
+.tbar-row{display:flex;align-items:center;gap:4px}
+.tbar-row input#todo-text{flex:1;min-width:0;border:0;background:transparent;font-size:16px;height:38px;padding:0 6px;outline:none}
+.tbar-pill{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 10px;border-radius:16px;border:0;background:var(--bg);font-size:12px;font-weight:600;color:var(--ink2);white-space:nowrap;flex-shrink:0}
+.tbar-pill.on{background:var(--ink);color:#fff}
+.td-pick{position:absolute;inset:0;opacity:0;width:100%;height:100%;border:0;padding:0;margin:0}
+.main.has-tbar{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
 .mc{border-radius:28px;padding:10px 6px 12px}
 .mc-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 6px}
 .mc-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
@@ -433,6 +457,7 @@ var I = {
   train:'<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l1.5-4M15 21l-1.5-4"/>',
   plane:'<path d="M2 16l20-6-20-6 4 6-4 6z"/>', link:'<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   memo:'<path d="M5 4h11l3 3v13H5z"/><path d="M9 10h6M9 14h6"/>',
   spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>'
 };
@@ -502,7 +527,7 @@ function won(n) { return '₩' + (Math.round(n / 100) * 100).toLocaleString('ko-
 
 /* ---------- state ---------- */
 var S = null;
-var ui = {tab: 'home', day: null, calY: null, calM: null, calSel: null, todoFilter: 'all', draft: {text: '', date: ''}, spend: {amt: '', memo: '', cat: '식사', cur: null}, sheet: null, toast: '', ai: {text: '', busy: false, err: '', msgs: []}, leg: null};
+var ui = {tab: 'home', day: null, calY: null, calM: null, calSel: null, todoFilter: 'all', draft: {text: '', date: '', time: '', star: false}, todoBar: false, spend: {amt: '', memo: '', cat: '식사', cur: null}, sheet: null, toast: '', ai: {text: '', busy: false, err: '', msgs: []}, leg: null};
 var fbUser = null, authReady = false, localMode = false, unsub = null;
 var db = null, ref = null, loaded = false, syncStatus = 'connecting', saving = false, again = false, lastSaved = '', saveTimer = null;
 
@@ -990,38 +1015,47 @@ function screenCalendar() {
   return h;
 }
 
+function todoShort(d) { var x = parseD(d); return (x.getMonth() + 1) + '/' + x.getDate() + ' ' + DOW[x.getDay()]; }
+function todoLong(d) { var x = parseD(d); return (x.getMonth() + 1) + '월 ' + x.getDate() + '일 ' + DOW[x.getDay()]; }
+function todoSort(a, b) { return (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'); }
+function todoRow(x, inStar) {
+  var meta = [inStar && x.date ? todoLong(x.date) : '', x.time || ''].filter(Boolean).join(' · ');
+  return '<div class="td-it' + (x.done ? ' dn' : '') + '">' + checkBtn(x.done, 'toggleTodo', x.id, x.text) +
+    '<button class="td-tb" data-act="sheet" data-type="todo" data-id="' + x.id + '"><span class="td-tx">' + esc(x.text) + '</span>' +
+    (meta ? '<span class="td-tm num">' + svg(I.clock, 12, 2.2) + esc(meta) + '</span>' : '') + '</button>' +
+    '<button class="td-st' + (x.star ? ' on' : '') + '" data-act="todoStar" data-id="' + x.id + '" aria-pressed="' + !!x.star + '" aria-label="' + esc(x.text) + ' 중요 표시">' + svg(I.star, 19, 1.8) + '</button></div>';
+}
 function screenTodo() {
-  var total = S.todos.length, done = S.todos.filter(function (x) { return x.done; }).length;
-  var d = ui.draft, days = tripDays();
+  ui.todoClosed = ui.todoClosed || {};
   var h = '<div><div class="eyebrow">' + esc(S.trip.title) + '</div><h1>할 일</h1></div>';
-  h += '<section class="card" style="border-radius:26px;padding:14px;display:flex;flex-direction:column;gap:10px">' +
-    '<span style="font-size:13px;font-weight:700;padding:0 4px">할 일 추가</span>' +
-    '<form data-form="todoAdd" style="display:flex;gap:8px;margin:0"><label class="sr" for="todo-text">새 할 일</label>' +
-    '<input id="todo-text" class="field" data-bind="draft.text" value="' + esc(d.text) + '" placeholder="환전하기" autocomplete="off" style="border-radius:23px;height:46px;flex:1;min-width:0">' +
-    '<button class="btn" type="submit">추가</button></form>' +
-    '<div class="chips"><button class="chip' + (!d.date ? ' on' : '') + '" data-act="draftDate" data-date="">날짜 없음</button>' +
-    days.map(function (x) { return '<button class="chip num' + (d.date === x.date ? ' on' : '') + '" data-act="draftDate" data-date="' + x.date + '">' + x.label + '</button>'; }).join('') +
-    '<label class="chip' + (d.date && !days.some(function (x) { return x.date === d.date; }) ? ' on' : '') + '" style="padding:0 6px 0 12px">' + svg(I.cal, 14) + '<span class="sr">날짜 직접 선택</span><input type="date" data-bind="draft.date" value="' + esc(d.date) + '" style="border:0;background:transparent;font-size:14px;width:128px;height:30px" class="num"></label></div>' +
-    '<span style="font-size:12px;color:var(--muted);padding:0 4px">' + (d.date ? mdDow(d.date) + (dayLabel(d.date) ? ' · ' + dayLabel(d.date) + ' 일정 화면과 달력에 표시돼요' : '에 추가 · 달력에 표시돼요') : '날짜 없이 ‘언제든’에 추가돼요') + '</span></section>';
-  h += '<section class="card" style="border-radius:26px;padding:16px 18px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;font-weight:700">준비 진행률</span><span class="num" style="font-size:14px;font-weight:600;color:var(--muted)">' + done + ' / ' + total + '</span></div>' +
-    '<div style="height:10px;background:var(--line2);border-radius:5px;overflow:hidden"><div style="height:10px;width:' + (total ? Math.round(done / total * 100) : 0) + '%;background:var(--deep);border-radius:5px"></div></div></section>';
-  var F = [['all','전체'],['left','남은 것'],['nodate','날짜 없음']];
-  h += '<div class="card seg" role="tablist" style="grid-template-columns:repeat(3,minmax(0,1fr))">' + F.map(function (f) { return '<button role="tab" aria-selected="' + (ui.todoFilter === f[0]) + '" class="' + (ui.todoFilter === f[0] ? 'on' : '') + '" data-act="todoFilter" data-f="' + f[0] + '">' + f[1] + '</button>'; }).join('') + '</div>';
-  var vis = S.todos.filter(function (x) { return ui.todoFilter !== 'left' || !x.done; });
-  var secs = [], und = vis.filter(function (x) { return !x.date; });
-  if (und.length) secs.push({title: '언제든', sub: '날짜 없이 챙길 것', items: und});
-  if (ui.todoFilter !== 'nodate') {
-    var keys = []; vis.forEach(function (x) { if (x.date && keys.indexOf(x.date) < 0) keys.push(x.date); }); keys.sort();
-    keys.forEach(function (k) { var l = dayLabel(k); secs.push({title: mdDow(k) + (l ? ' · ' + l : ''), sub: l ? '일정 화면에도 표시' : '달력에 표시', items: vis.filter(function (x) { return x.date === k; })}); });
-  }
-  if (!secs.length) h += '<div class="card empty">' + (total ? '모두 끝냈어요' : '첫 할 일을 위에서 추가해 보세요') + '</div>';
-  secs.forEach(function (s) {
-    h += '<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:8px;padding:0 6px"><span class="num" style="font-size:13px;font-weight:700">' + esc(s.title) + '</span><span style="font-size:12px;color:var(--muted)">' + s.sub + '</span></div>' +
-      '<div class="card list">' + s.items.map(function (x) {
-        return '<div class="lrow">' + checkBtn(x.done, 'toggleTodo', x.id, x.text) + '<span style="flex:1;font-size:15px" class="' + (x.done ? 'done' : '') + '">' + esc(x.text) + '</span><button class="x" data-act="delTodo" data-id="' + x.id + '" aria-label="' + esc(x.text) + ' 삭제">' + svg(I.x, 16) + '</button></div>';
-      }).join('') + '</div></section>';
-  });
+  var groups = [], st = S.todos.filter(function (x) { return x.star; }).sort(todoSort);
+  if (st.length) groups.push({k: 'star', t: '중요', items: st, star: true});
+  var keys = []; S.todos.forEach(function (x) { if (!x.star && x.date && keys.indexOf(x.date) < 0) keys.push(x.date); }); keys.sort();
+  keys.forEach(function (k) { var l = dayLabel(k); groups.push({k: k, t: todoLong(k), items: S.todos.filter(function (x) { return !x.star && x.date === k; }).sort(todoSort)}); });
+  var nd = S.todos.filter(function (x) { return !x.star && !x.date; });
+  if (nd.length) groups.push({k: 'none', t: '날짜 없음', items: nd});
+  if (!groups.length) h += '<div class="card empty">아래 입력창에서 첫 할 일을 추가해 보세요</div>';
+  else h += '<section class="card td">' + groups.map(function (g) {
+    var left = g.items.filter(function (x) { return !x.done; }).length, open = !ui.todoClosed[g.k];
+    return '<div class="td-g"><button class="td-gh" data-act="todoFold" data-k="' + g.k + '" aria-expanded="' + open + '">' +
+      (g.star ? '<span class="td-st on" style="padding:0;width:auto;height:auto">' + svg(I.star, 16, 1.8) + '</span>' : '') +
+      '<b class="num">' + esc(g.t) + '</b>' + (g.sub ? '<span class="td-sub num">· ' + esc(g.sub) + '</span>' : '') + '<span class="td-n num">' + left + '</span><span style="flex:1"></span>' +
+      '<span style="color:var(--muted);display:flex;transform:rotate(' + (open ? 90 : -90) + 'deg)">' + svg(I.back, 16, 2.2) + '</span></button>' +
+      (open ? g.items.map(function (x) { return todoRow(x, g.star); }).join('') : '') + '</div>';
+  }).join('') + '</section>';
   return h;
+}
+function todoBar() {
+  var d = ui.draft, days = tripDays(), inTrip = days.some(function (x) { return x.date === d.date; });
+  var chips = '<button type="button" class="chip' + (!d.date ? ' on' : '') + '" data-act="draftDate" data-date="">날짜 없음</button>' +
+    days.map(function (x) { return '<button type="button" class="chip num' + (d.date === x.date ? ' on' : '') + '" data-act="draftDate" data-date="' + x.date + '">' + todoShort(x.date) + '</button>'; }).join('') +
+    '<label class="chip' + (d.date && !inTrip ? ' on' : '') + '" style="position:relative">' + svg(I.cal, 14) + (d.date && !inTrip ? todoShort(d.date) : '날짜 선택') + '<input type="date" data-bind="draft.date" value="' + esc(d.date) + '" aria-label="날짜 직접 선택" class="td-pick"></label>';
+  return '<form class="tbar' + (ui.todoBar ? ' open' : '') + '" data-form="todoAdd"><div class="tbar-chips chips">' + chips + '</div>' +
+    '<div class="tbar-row"><button type="button" class="tbar-pill num' + (d.date ? ' on' : '') + '" data-act="todoBarToggle">' + svg(I.cal, 14) + '<span>' + (d.date ? todoShort(d.date) : '날짜') + '</span></button>' +
+    '<label class="tbar-pill num' + (d.time ? ' on' : '') + '" style="position:relative">' + svg(I.clock, 14) + '<span>' + (d.time || '시간') + '</span><input type="time" data-bind="draft.time" value="' + esc(d.time) + '" aria-label="시간 (선택)" class="td-pick"></label>' +
+    '<label class="sr" for="todo-text">새 할 일</label><input id="todo-text" data-bind="draft.text" value="' + esc(d.text) + '" placeholder="할 일 추가" autocomplete="off" enterkeyhint="done">' +
+    '<button type="button" class="td-st' + (d.star ? ' on' : '') + '" data-act="draftStar" aria-pressed="' + !!d.star + '" aria-label="중요로 추가">' + svg(I.star, 19, 1.8) + '</button>' +
+    '<button type="submit" class="ai-send" style="width:38px;height:38px" aria-label="할 일 추가">' + svg(I.up, 18, 2.4) + '</button></div></form>';
 }
 
 function screenWallet() {
@@ -1096,7 +1130,7 @@ function screenSettings() {
   var syncTxt = fbUser ? (esc(fbUser.email || 'Google 계정') + '로 로그인했어요. ' + (syncStatus === 'error' ? '방금 저장에 실패했어요. 인터넷 연결을 확인해 주세요.' : '바뀐 내용은 클라우드에 저장되고, 인터넷이 없을 땐 폰에 먼저 저장돼요.')) : '로그인하지 않아서 이 기기에만 저장돼요.';
   h += group('데이터', '<div style="padding:14px;display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:var(--ink2)">' + syncTxt + '</span>' +
     '<div class="row2"><button class="btn soft" data-act="copyJson">백업 복사</button><button class="btn danger" data-act="sheet" data-type="reset">새 여행 시작</button></div>' + (fbUser ? '<button class="btn soft" data-act="signOut">로그아웃</button>' : (configured() ? '<button class="btn" data-act="signIn">Google 계정으로 로그인</button>' : '')) + '</div>');
-  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1123-a</p>';
+  h += '<p class="num" style="text-align:center;font-size:11px;color:var(--muted);margin:4px 0 0">길동무 버전 1123-b</p>';
   return h;
 }
 function group(title, inner) { return '<section style="display:flex;flex-direction:column;gap:8px"><h2 style="font-size:13px;color:var(--muted);padding:0 6px">' + title + '</h2><div class="card">' + inner + '</div></section>'; }
@@ -1408,8 +1442,10 @@ function sheetHtml() {
       '<div><label class="flabel" for="s-note">메모</label><textarea id="s-note" name="note" class="field" rows="2">' + esc(s.note) + '</textarea></div>' +
       sheetButtons(!!sh.id);
   } else if (sh.type === 'todo') {
-    body = '<h3>할 일 추가</h3><div><label class="flabel" for="t-text">할 일</label><input id="t-text" name="text" class="field" required placeholder="오디오가이드 받기"></div>' +
-      '<div><label class="flabel" for="t-date">날짜</label><input id="t-date" name="date" type="date" class="field num" value="' + esc(sh.date || '') + '"></div>' + sheetButtons(false);
+    var tx = sh.id ? S.todos.filter(function (x) { return x.id === sh.id; })[0] : null; tx = tx || {text: '', date: sh.date || '', time: '', star: false};
+    body = '<h3>' + (sh.id ? '할 일 편집' : '할 일 추가') + '</h3><div><label class="flabel" for="t-text">할 일</label><input id="t-text" name="text" class="field" required placeholder="오디오가이드 받기" value="' + esc(tx.text) + '"></div>' +
+      '<div class="row2"><div><label class="flabel" for="t-date">날짜</label><input id="t-date" name="date" type="date" class="field num" value="' + esc(tx.date || '') + '"></div><div><label class="flabel" for="t-time">시간 (선택)</label><input id="t-time" name="time" type="time" class="field num" value="' + esc(tx.time || '') + '"></div></div>' +
+      '<label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600"><input type="checkbox" name="star" value="1"' + (tx.star ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:#16181D">중요</label>' + sheetButtons(!!sh.id);
   } else if (sh.type === 'booking') {
     var b = sh.id ? S.bookings.filter(function (x) { return x.id === sh.id; })[0] : null;
     b = b || {date: S.trip.start, time: '', name: '', kind: '입장권', url: ''};
@@ -1483,12 +1519,14 @@ function render() {
   if (S && (fbUser || localMode)) {
     var tabs = [['home','개요',I.home],['calendar','달력',I.cal],['timeline','일정',I.tl],['todo','할 일',I.todo],['wallet','메모',I.memo]];
     nav = '<nav class="nav" aria-label="하단 메뉴">' + tabs.map(function (t) { var on = ui.tab === t[0]; return '<button class="' + (on ? 'on' : '') + '" data-act="tab" data-tab="' + t[0] + '"' + (on ? ' aria-current="page"' : '') + '>' + svg(t[2]) + t[1] + '</button>'; }).join('') + '</nav>';
+    if (ui.tab === 'todo') nav += todoBar();
     if (ui.tab === 'timeline') nav += '<button class="fab" data-act="sheet" data-type="stop" aria-label="일정 추가">' + svg(I.plus, 24, 2.2) + '</button>';
   }
   /* 아이폰 홈 화면 앱에서 스크롤이 멈추지 않도록 스크롤 영역(.main)은 한 번만 만들고 내용만 바꿔요 */
   var m2 = app.querySelector('.main'), layer = app.querySelector('.layer');
   if (!m2 || !layer) { app.innerHTML = '<main class="main"></main><div class="layer"></div>'; m2 = app.querySelector('.main'); layer = app.querySelector('.layer'); }
   m2.innerHTML = body;
+  m2.classList.toggle('has-tbar', ui.tab === 'todo');
   /* 가로 탭(Day 1, Day 2…)은 다시 그려져도 사용자가 넘겨둔 위치 그대로, 고른 날짜는 화면 안에 */
   ['.daytabs', '.legtabs'].forEach(function (q) {
     var el = m2.querySelector(q); if (!el) return;
@@ -1506,6 +1544,7 @@ function render() {
   try { window.scrollTo(0, keepScroll); } catch (e) {}
   document.documentElement.style.overflow = ui.sheet ? 'hidden' : ''; document.body.style.overflow = ui.sheet ? 'hidden' : '';
   lastTab = ui.tab;
+  if (ui.tab === 'todo') fitBar();
   fitVV();
   var aiBox2 = document.getElementById('ai-msgs'); if (aiBox2 && aiScroll != null) aiBox2.scrollTop = aiAtEnd ? aiBox2.scrollHeight : aiScroll;
   var aiTa2 = document.getElementById('ai-text'); if (aiTa2) { aiGrow(aiTa2); if (aiFocus) { try { aiTa2.focus({preventScroll: true}); var L = aiTa2.value.length; aiTa2.setSelectionRange(L, L); } catch (e) {} } }
@@ -1539,6 +1578,10 @@ var A = {
   delTodo: function (el) { S.todos = S.todos.filter(function (x) { return x.id !== el.dataset.id; }); commit('할 일을 지웠어요'); },
   todoFilter: function (el) { ui.todoFilter = el.dataset.f; render(); },
   draftDate: function (el) { ui.draft.date = el.dataset.date; render(); },
+  draftStar: function () { ui.draft.star = !ui.draft.star; render(); },
+  todoBarToggle: function () { ui.todoBar = !ui.todoBar; render(); },
+  todoStar: function (el) { var t = S.todos.filter(function (x) { return x.id === el.dataset.id; })[0]; if (t) { t.star = !t.star; commit(t.star ? '중요로 올렸어요' : '중요에서 뺐어요'); } },
+  todoFold: function (el) { ui.todoClosed = ui.todoClosed || {}; ui.todoClosed[el.dataset.k] = !ui.todoClosed[el.dataset.k]; render(); },
   spendCat: function (el) { ui.spend.cat = el.dataset.c; render(); },
   delSpend: function (el) { S.spends = S.spends.filter(function (x) { return x.id !== el.dataset.id; }); commit('지출을 지웠어요'); },
   theme: function (el) { S.settings.theme = el.dataset.k; commit(); },
@@ -1570,6 +1613,7 @@ var A = {
     if (sh.type === 'stop') S.stops = S.stops.filter(function (x) { return x.id !== sh.id; });
     if (sh.type === 'booking') S.bookings = S.bookings.filter(function (x) { return x.id !== sh.id; });
     if (sh.type === 'memo') S.memos = S.memos.filter(function (x) { return x.id !== sh.id; });
+    if (sh.type === 'todo') S.todos = S.todos.filter(function (x) { return x.id !== sh.id; });
     if (sh.type === 'stay') { var sl = (sh.id && legById(sh.id)) || curLeg(); sl.stay = {}; syncStayStops(sl); }
     if (sh.type === 'leg') { var dl2 = legById(sh.id); if (dl2) { S.stops = S.stops.filter(function (x) { return x.auto !== 'in:' + dl2.id && x.auto !== 'out:' + dl2.id; }); S.trip.legs = S.trip.legs.filter(function (l) { return l.id !== sh.id; }); if (ui.leg === sh.id) ui.leg = null; syncTripRange(); } }
     ui.sheet = null; commit('삭제했어요');
@@ -1597,7 +1641,7 @@ document.addEventListener('submit', function (e) {
   e.preventDefault();
   if (kind === 'todoAdd') {
     var txt = ui.draft.text.trim(); if (!txt) { document.getElementById('todo-text').focus(); return; }
-    S.todos.push({id: nid(), text: txt, date: ui.draft.date || '', done: false}); ui.draft.text = ''; commit('할 일을 추가했어요');
+    S.todos.push({id: nid(), text: txt, date: ui.draft.date || '', time: ui.draft.time || '', star: !!ui.draft.star, done: false}); ui.draft.text = ''; ui.draft.time = ''; commit('할 일을 추가했어요');
     var tt = document.getElementById('todo-text'); if (tt) tt.focus();
   } else if (kind === 'spendAdd') {
     var n = parseFloat(String(ui.spend.amt).replace(/,/g, ''));
@@ -1634,7 +1678,9 @@ document.addEventListener('submit', function (e) {
       ui.day = v.date;
     } else if (sh.type === 'todo') {
       if (!v.text) { showErr('sheet-err', '할 일을 적어 주세요'); return; }
-      S.todos.push({id: nid(), text: v.text, date: v.date || '', done: false});
+      var trec = {text: v.text, date: v.date || '', time: v.time || '', star: !!v.star};
+      var tOld = sh.id ? S.todos.filter(function (x) { return x.id === sh.id; })[0] : null;
+      if (tOld) Object.assign(tOld, trec); else S.todos.push(Object.assign({id: nid(), done: false}, trec));
     } else if (sh.type === 'booking') {
       if (!v.name) { showErr('sheet-err', '이름을 적어 주세요'); return; }
       if (v.url && !/^https?:\/\//i.test(v.url)) { showErr('sheet-err', '링크는 https:// 로 시작해야 해요'); return; }
@@ -1675,6 +1721,7 @@ document.addEventListener('change', function (e) {
   var b = e.target.getAttribute && e.target.getAttribute('data-bind'); if (!b) return;
   var v = e.target.value;
   if (b === 'draft.date') { ui.draft.date = v; render(); }
+  else if (b === 'draft.time') { ui.draft.time = v; render(); }
   else if (b === 'spend.cur') { ui.spend.cur = v; render(); }
   else if (b === 'trip.tz' || b === 'trip.homeTz') { S.trip[b.split('.')[1]] = v; commit(); }
   else if (b === 'leg.tz') { curLeg().tz = v; syncTripRange(); commit(); }
@@ -1697,6 +1744,11 @@ function fitVV() {
 }
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitVV); window.visualViewport.addEventListener('scroll', fitVV); }
 window.addEventListener('resize', fitVV);
+function fitBar() { var b = document.querySelector('.tbar'); if (!b) return; var vv = window.visualViewport; var kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0; b.style.bottom = kb > 80 ? (kb + 8) + 'px' : ''; }
+if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitBar); window.visualViewport.addEventListener('scroll', fitBar); }
+document.addEventListener('focusin', function (e) { var t = e.target; if (t && t.id === 'todo-text') { ui.todoBar = true; var b = t.closest('.tbar'); if (b) b.classList.add('open'); setTimeout(fitBar, 60); setTimeout(fitBar, 350); } });
+document.addEventListener('pointerdown', function (e) { if (ui.tab !== 'todo' || !ui.todoBar) return; if (e.target.closest && (e.target.closest('.tbar') || e.target.closest('.sheet'))) return; ui.todoBar = false; var b = document.querySelector('.tbar'); if (b) b.classList.remove('open'); });
+document.addEventListener('focusout', function (e) { if (e.target && e.target.id === 'todo-text') setTimeout(fitBar, 300); });
 document.addEventListener('focusin', function (e) { if (e.target && e.target.closest && e.target.closest('.sheet')) { setTimeout(fitVV, 60); setTimeout(fitVV, 350); } });
 
 /* clocks tick without writing anything */
