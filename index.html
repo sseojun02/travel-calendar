@@ -168,7 +168,9 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .mc-e span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .mc-h{display:block;font-size:11px;line-height:15px;font-weight:700;padding:1px 4px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .mc-c.out .mc-h{opacity:.45}
-.mc-hlrow{border-radius:16px;margin:4px 6px;width:calc(100% - 12px)!important;padding:0 10px!important;border-bottom:0!important}
+.mc-hlrow{position:relative;isolation:isolate;border-bottom-color:transparent!important}
+.mc-hlrow::before{content:'';position:absolute;z-index:-1;top:3px;bottom:3px;left:-10px;right:-10px;border-radius:14px;background:var(--hl)}
+.lrow:has(+ .mc-hlrow){border-bottom-color:transparent}
 .mc-more{font-size:11px;color:var(--muted);padding-left:8px}
 .mc-lg{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-size:11px;color:var(--ink2);padding:10px 0 0}
 .mc-lg b{display:inline-block;width:6px;height:6px;border-radius:3px;margin-right:4px;vertical-align:1px}
@@ -442,7 +444,7 @@ var TZS = [['Europe/Paris','파리'],['Europe/London','런던'],['Europe/Rome','
 var CATS = [['sight','관광'],['food','식사'],['cafe','카페'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
 var SPEND_CATS = ['식사','카페','교통','관광','쇼핑','숙소','기타'];
 var DOW = ['일','월','화','수','목','금','토'];
-var APP_VER = '1123-e';
+var APP_VER = '1123-f';
 var LS_KEY = 'travel-calendar-v1';
 /* 새 버전 알림 */
 function checkUpdate() {
@@ -1023,7 +1025,7 @@ function screenCalendar() {
   if (list.length) {
     h += '<div class="card list">' + list.map(function (s) {
       var hc = s.color ? hlOf(s) : null;
-      return '<button class="lrow' + (hc ? ' mc-hlrow' : '') + '" data-act="sheet" data-type="stop" data-id="' + s.id + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:' + (hc ? hc[2] : 'transparent') + ';' + (hc ? 'color:' + hc[3] + ';' : '') + 'text-align:left;padding:0;min-height:56px;gap:12px">' +
+      return '<button class="lrow' + (hc ? ' mc-hlrow' : '') + '" data-act="sheet" data-type="stop" data-id="' + s.id + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:transparent;' + (hc ? '--hl:' + hc[2] + ';color:' + hc[3] + ';' : '') + 'text-align:left;padding:0;min-height:56px;gap:12px">' +
         '<span class="num" style="width:44px;flex-shrink:0;font-size:14px;font-weight:700;color:' + (hc ? 'inherit' : s.start ? 'var(--ink)' : 'var(--muted)') + '">' + esc(s.start || '미정') + '</span>' +
         '<span style="width:7px;height:7px;border-radius:4px;background:' + catDot(s.cat) + ';flex-shrink:0"></span>' +
         '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:' + (s.color ? 800 : 600) + '">' + esc(s.title) + '</span>' +
