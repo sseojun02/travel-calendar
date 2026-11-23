@@ -166,7 +166,9 @@ input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-ca
 .mc-e{display:flex;align-items:center;gap:3px;font-size:11px;line-height:14px;color:var(--ink);white-space:nowrap;overflow:hidden;min-width:0}
 .mc-e i{width:5px;height:5px;border-radius:3px;flex-shrink:0}
 .mc-e span{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.mc-e.hl span{font-weight:800}
+.mc-h{display:block;font-size:11px;line-height:15px;font-weight:700;padding:1px 4px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mc-c.out .mc-h{opacity:.45}
+.mc-hlrow{border-radius:16px;margin:4px 6px;width:calc(100% - 12px)!important;padding:0 10px!important;border-bottom:0!important}
 .mc-more{font-size:11px;color:var(--muted);padding-left:8px}
 .mc-lg{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-size:11px;color:var(--ink2);padding:10px 0 0}
 .mc-lg b{display:inline-block;width:6px;height:6px;border-radius:3px;margin-right:4px;vertical-align:1px}
@@ -440,7 +442,7 @@ var TZS = [['Europe/Paris','파리'],['Europe/London','런던'],['Europe/Rome','
 var CATS = [['sight','관광'],['food','식사'],['cafe','카페'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
 var SPEND_CATS = ['식사','카페','교통','관광','쇼핑','숙소','기타'];
 var DOW = ['일','월','화','수','목','금','토'];
-var APP_VER = '1123-d';
+var APP_VER = '1123-e';
 var LS_KEY = 'travel-calendar-v1';
 /* 새 버전 알림 */
 function checkUpdate() {
@@ -1005,8 +1007,8 @@ function screenCalendar() {
     var dt = new Date(y, m, 1 - off + i), ds = dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
     var out = dt.getMonth() !== m, dw = i % 7, sel = ds === ui.calSel;
     var trip = ds >= S.trip.start && ds <= S.trip.end;
-    var L = stopsOn(ds), r = '';
-    L.slice(0, 3).forEach(function (s) { r += '<span class="mc-e' + (s.color ? ' hl' : '') + '"><i style="background:' + catDot(s.cat) + '"></i><span>' + esc(s.title) + '</span></span>'; });
+    var L0 = stopsOn(ds), L = L0.filter(function (s) { return s.color; }).concat(L0.filter(function (s) { return !s.color; })), r = '';
+    L.slice(0, 3).forEach(function (s) { var hc = hlOf(s); r += s.color ? '<span class="mc-h" style="background:' + hc[2] + ';color:' + hc[3] + '">' + esc(s.title) + '</span>' : '<span class="mc-e"><i style="background:' + catDot(s.cat) + '"></i><span>' + esc(s.title) + '</span></span>'; });
     if (L.length > 3) r += '<span class="mc-more num">+' + (L.length - 3) + '</span>';
     var fg = dw === 0 ? '#C42B2B' : dw === 6 ? '#2F5BD3' : 'var(--ink)';
     h += '<button class="mc-c' + (out ? ' out' : '') + (trip ? ' trip' : '') + (sel ? ' sel' : '') + '" data-act="calSel" data-date="' + ds + '" aria-label="' + (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일' + (L.length ? ', 일정 ' + L.length + '개' : '') + '" aria-pressed="' + sel + '">' +
@@ -1020,11 +1022,12 @@ function screenCalendar() {
   }
   if (list.length) {
     h += '<div class="card list">' + list.map(function (s) {
-      return '<button class="lrow" data-act="sheet" data-type="stop" data-id="' + s.id + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:transparent;text-align:left;padding:0;min-height:56px;gap:12px">' +
-        '<span class="num" style="width:44px;flex-shrink:0;font-size:14px;font-weight:700;color:' + (s.start ? 'var(--ink)' : 'var(--muted)') + '">' + esc(s.start || '미정') + '</span>' +
+      var hc = s.color ? hlOf(s) : null;
+      return '<button class="lrow' + (hc ? ' mc-hlrow' : '') + '" data-act="sheet" data-type="stop" data-id="' + s.id + '" style="width:100%;border-left:0;border-right:0;border-top:0;background:' + (hc ? hc[2] : 'transparent') + ';' + (hc ? 'color:' + hc[3] + ';' : '') + 'text-align:left;padding:0;min-height:56px;gap:12px">' +
+        '<span class="num" style="width:44px;flex-shrink:0;font-size:14px;font-weight:700;color:' + (hc ? 'inherit' : s.start ? 'var(--ink)' : 'var(--muted)') + '">' + esc(s.start || '미정') + '</span>' +
         '<span style="width:7px;height:7px;border-radius:4px;background:' + catDot(s.cat) + ';flex-shrink:0"></span>' +
         '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:' + (s.color ? 800 : 600) + '">' + esc(s.title) + '</span>' +
-        (s.place ? '<span style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(s.place) + '</span>' : '') + '</span></button>';
+        (s.place ? '<span style="font-size:12px;color:' + (hc ? 'inherit;opacity:.75' : 'var(--muted)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(s.place) + '</span>' : '') + '</span></button>';
     }).join('') + '</div>';
   }
   if (!list.length && !todos.length) h += '<div class="card empty">등록된 일정이나 할 일이 없어요.</div>';
