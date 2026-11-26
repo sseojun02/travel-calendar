@@ -222,6 +222,8 @@ body.pp-open .shell{display:none}
 .lrow:has(+ .mc-hlrow){border-bottom-color:transparent}
 .mc-more{font-size:11px;color:var(--muted);padding-left:8px}
 .mc-lg{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-size:11px;color:var(--ink2);padding:10px 0 0}
+.mc-lg-leg{padding-top:10px;font-size:12px;gap:14px}
+.mc-lg-leg+.mc-lg{padding-top:6px}
 .mc-lg b{display:inline-block;width:6px;height:6px;border-radius:3px;margin-right:4px;vertical-align:1px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:2px}
 .cal-cell{height:50px;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
@@ -493,7 +495,7 @@ var TZS = [['Europe/Paris','파리'],['Europe/London','런던'],['Europe/Rome','
 var CATS = [['sight','관광'],['food','식사'],['cafe','카페'],['shop','쇼핑'],['stay','숙소'],['etc','기타']];
 var SPEND_CATS = ['식사','카페','교통','관광','쇼핑','숙소','기타'];
 var DOW = ['일','월','화','수','목','금','토'];
-var APP_VER = '1123-h';
+var APP_VER = '1126-a';
 var LS_KEY = 'travel-calendar-v1';
 /* 새 버전 알림 */
 function checkUpdate() {
@@ -668,6 +670,9 @@ function syncTripRange() {
   S.trip.end = ls.reduce(function (m, l) { return l.end > m ? l.end : m; }, ls[0].end);
   var f = ls[0]; S.trip.country = f.country; S.trip.city = f.city; S.trip.tz = f.tz; S.trip.currency = f.currency;
 }
+var LEG_TINT = [['#F6FAFE', '#C9DEF2'], ['#F5FBF3', '#C8E2C2'], ['#FDF8F4', '#EED3BE'], ['#F9F7FD', '#D7CFEF'], ['#FDFCF2', '#EBE2B0'], ['#FDF6F8', '#EECDD7']];
+function legTint(date) { var ls = legsSorted(), l = legFor(date), i = ls.indexOf(l); return LEG_TINT[(i < 0 ? 0 : i) % LEG_TINT.length]; }
+function legLegend() { var ls = legsSorted(); return '<div class="mc-lg mc-lg-leg">' + ls.map(function (l, i) { var c = LEG_TINT[i % LEG_TINT.length]; return '<span><b style="width:18px;height:10px;border-radius:5px;background:' + c[0] + ';box-shadow:inset 0 0 0 1px ' + c[1] + '"></b>' + esc(legName(l)) + '</span>'; }).join('') + '</div>'; }
 function legFor(date) { var ls = legsSorted(), pick = ls[0]; ls.forEach(function (l) { if (l.start <= date) pick = l; }); return pick; }
 function legById(id) { ensureLegs(); return S.trip.legs.filter(function (l) { return l.id === id; })[0]; }
 function autoLeg() { var today = nowIn(S.trip.homeTz || 'Asia/Seoul').date; return (today >= S.trip.start && today <= S.trip.end) ? legFor(today) : legsSorted()[0]; }
@@ -1066,7 +1071,7 @@ function weekView() {
   for (var i = 0; i < 7; i++) {
     var d = new Date(w0); d.setDate(w0.getDate() + i);
     var ds = ymd(d), dw = d.getDay(), L = stopsOn(ds), sel = ds === ui.calSel, trip = ds >= S.trip.start && ds <= S.trip.end;
-    h += '<button class="wk-d' + (sel ? ' sel' : '') + (trip ? ' trip' : '') + '" data-act="calSel" data-date="' + ds + '"><span class="wk-n"><b class="num"' + (sel ? '' : ' style="color:' + (dw === 0 ? '#C42B2B' : dw === 6 ? '#2F5BD3' : 'var(--ink)') + '"') + '>' + d.getDate() + '</b><span>' + DOW[dw] + '</span></span><span class="wk-l">' +
+    h += '<button class="wk-d' + (sel ? ' sel' : '') + (trip ? ' trip' : '') + '" data-act="calSel" data-date="' + ds + '"' + (trip ? ' style="background:' + legTint(ds)[0] + '"' : '') + '><span class="wk-n"><b class="num"' + (sel ? '' : ' style="color:' + (dw === 0 ? '#C42B2B' : dw === 6 ? '#2F5BD3' : 'var(--ink)') + '"') + '>' + d.getDate() + '</b><span>' + DOW[dw] + '</span></span><span class="wk-l">' +
       (L.length ? L.map(function (s) { var hc = s.color ? hlOf(s) : null; return '<span class="wk-e' + (hc ? ' hl' : '') + '"' + (hc ? ' style="--hl:' + hc[2] + ';color:' + hc[3] + '"' : '') + '><span class="num wk-t">' + esc(s.start || '') + '</span><i style="background:' + catDot(s.cat) + '"></i><span class="wk-x">' + esc(s.title) + '</span></span>'; }).join('') : '<span class="wk-none">일정 없음</span>') +
       '</span></button>';
   }
@@ -1117,7 +1122,7 @@ function screenCalendar() {
     '<span class="num" style="font-size:17px;font-weight:700">' + title + '</span>' +
     '<button class="x" style="color:var(--ink);width:44px;height:44px" data-act="month" data-d="1" aria-label="' + (wkm ? '다음 주' : '다음 달') + '">' + svg(I.next, 18, 2.2) + '</button></div>' +
     '';
-  var legend = '<div class="mc-lg">' + CATS.map(function (c) { return '<span><b style="background:' + catDot(c[0]) + '"></b>' + c[1] + '</span>'; }).join('') + '</div>';
+  var legend = legLegend() + '<div class="mc-lg">' + CATS.map(function (c) { return '<span><b style="background:' + catDot(c[0]) + '"></b>' + c[1] + '</span>'; }).join('') + '</div>';
   if (wkm) h += weekView() + legend + '</section>';
   else {
   h += '<div class="mc-g mc-dow">' + DOW.map(function (d, i) { return '<span style="color:' + (i === 0 ? '#C42B2B' : i === 6 ? '#2F5BD3' : 'inherit') + '">' + d + '</span>'; }).join('') + '</div><div class="mc-g">';
@@ -1129,7 +1134,7 @@ function screenCalendar() {
     L.slice(0, 3).forEach(function (s) { var hc = hlOf(s); r += s.color ? '<span class="mc-h" style="background:' + hc[2] + ';color:' + hc[3] + '">' + esc(s.title) + '</span>' : '<span class="mc-e"><i style="background:' + catDot(s.cat) + '"></i><span>' + esc(s.title) + '</span></span>'; });
     if (L.length > 3) r += '<span class="mc-more num">+' + (L.length - 3) + '</span>';
     var fg = dw === 0 ? '#C42B2B' : dw === 6 ? '#2F5BD3' : 'var(--ink)';
-    h += '<button class="mc-c' + (out ? ' out' : '') + (trip ? ' trip' : '') + (sel ? ' sel' : '') + '" data-act="calSel" data-date="' + ds + '" aria-label="' + (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일' + (L.length ? ', 일정 ' + L.length + '개' : '') + '" aria-pressed="' + sel + '">' +
+    h += '<button class="mc-c' + (out ? ' out' : '') + (trip ? ' trip' : '') + (sel ? ' sel' : '') + '"' + (trip ? ' style="background:' + legTint(ds)[0] + '"' : '') + ' data-act="calSel" data-date="' + ds + '" aria-label="' + (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일' + (L.length ? ', 일정 ' + L.length + '개' : '') + '" aria-pressed="' + sel + '">' +
       '<span class="mc-n num" style="' + (sel ? '' : 'color:' + fg) + '">' + dt.getDate() + '</span>' + r + '</button>';
   }
   h += '</div>' + legend + '</section>';
